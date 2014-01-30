@@ -1,0 +1,6 @@
+ietf-bib
+.DS_Store
+.project
+*~
+draft*.txt
+draft*.html
