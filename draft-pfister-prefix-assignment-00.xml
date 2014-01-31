@@ -131,19 +131,59 @@ Note that several methods may be used to allocate such a prefix.
 
 <section anchor="router" title="Router Behavior">
 	
-	<t>The router MUST maintain a database of all prefixes currently assigned to a connected link (Locally Assigned Prefixes, LAPs) as well as a list of all the assignments being advertised by other routers (Externally Assigned Prefixes, EAPs). EAPs and associated information are learned through the mechanisms described in <xref target="floodlap"/>. The assignment algorithm uses EAPs to determine which assignment should be used, making new assignment when necessary, hence controlling the LAP database.</t>
+	<t>In a home network, all routers that want to participate in the prefix assignment algorithm MUST fulfill the requirements defined in the memo. They MUST also use the same flooding protocol and routing protocol. The presence of a router that do not implement the flooding protocol and prefix assignment algorithm will not prevent the network from working as long as:
+		<list style="symbols">
+			<t>It doesn't act as a DHCP server on a link which is considered as internal by any other router.</t>
+			<t>It doesn't use any prefix that may be used by the prefix assignment algorithm.</t>
+		</list>
+	</t>
 	
-	<t>Considering the address assignment algorithm, the router MUST maintain a database of all its own address assignments, and address assignments made by other routers on connected links. The latter are learned through the mechanisms described in <xref target="floodlaa"/></t>
+	<section anchor="struct" title="Data structures">
 	
-	<t>The router MUST as well maintain a list of all the prefixes that should be used for prefix assignment. These prefixes may be locally generated or learned through the mechanisms described in <xref target="flooddp"/>. In this document, such prefixes are referred as delegated prefixes.</t>
+		<t>The router MUST maintain a database of all prefixes currently assigned to a connected link. They are called Locally Assigned Prefixes (LAPs) and MUST contain the following information:
+			<list style="hanging">
+				<t hangText="Prefix">The assigned prefix.</t>
+				<t hangText="Link ID">An interface identifier of the interface connected to the link on which the assignment is made.</t>
+				<t hangText="Authoritative bit">A boolean that tells whether the assignment comes from a network authority (DHCP PD, manual configuration, etc...).</t>
+				<t hangText="Assignment's Priority">A value between 0 and 15, quantifying the assignment's priority.</t>
+				<t hangText="Advertised">Whether that assignment is being advertised by the flooding protocol <xref target="floodlap"/>.</t>
+				<t hangText="Applied">Whether that assignment is applied on link's configuration <xref target="prefapply"/>.</t>
+			</list>
+			Although such a list is private to each router, the prefix assignment algorithm makes sure routers' lists converge toward a same result of assigned prefixes and link IDs.
+		</t>
 	
-	<section title="Internal and External Interfaces">
+		<t>The router MUST maintain a database of all prefix assignments currently advertised by other routers. They are called Externally Assigned Prefixes (EAPs) and MUST contain the following information:
+			<list style="hanging">
+				<t hangText="Prefix">The assigned prefix.</t>
+				<t hangText="Router ID">The identifier of the advertising router.</t>
+				<t hangText="Link ID">If the assignment is made on a connected link, an interface identifier of the interface connected to that link.</t>
+				<t hangText="Authoritative bit">A boolean that tells whether the assignment comes from a network authority (DHCP PD, manual configuration, etc...).</t>
+				<t hangText="Assignment's Priority">A value between 0 and 15, quantifying the assignment's priority.</t>
+			</list>
+			The EAP list is the result of the information provided by the flooding protocol, as specified in <xref target="floodlap"/>. The assignment algorithm uses EAPs to determine which assignment should be used, making new assignment when necessary, hence controlling the LAP database.
+		</t>
+			
+		<t>An assignment is said to take precedence over another assignment when:
+			<list style="symbols">
+				<t>The authoritative bit value is higher.</t>
+				<t>In case of tie, the priority value is higher.</t>
+				<t>In case of tie, the advertising router's ID is higher.</t>
+			</list>
+		</t>
+
+		<t>The router MUST maintain a database of all its own address assignments, and address assignments made by other routers on connected links. The latter are learned through the mechanisms described in <xref target="floodlaa"/></t>
 	
-		<t>Each router's interface may either be considered as internal or external. Prefixes or addresses are not assigned on external interfaces. The way an interface is selected as internal or external is out of the scope of this document.</t>
+		<t>The router MUST as well maintain a list of all the prefixes that should be used for prefix assignment. These prefixes may be locally generated, as described in <xref target="obtprefix"/>, or learned through the mechanisms described in <xref target="flooddp"/>. In this document, such prefixes are referred as delegated prefixes.</t>
 	
-		<t>If an internal interface's state is changed to external, all prefixes and addresses assigned on the considered interface are deleted, and the prefix assignment algorithm needs to be run.</t>
+</section>
 	
-		<t>If an external interface's state is changed to internal, the prefix assignment algorithm needs to be run.</t>
+	<section title="Routers' Interfaces">
+	
+		<t>Each router's interface MUST either be considered as internal or external. Prefixes or addresses are not assigned on external interfaces. The way an interface is selected as internal or external is out of the scope of this document.</t>
+	
+		<t>If an internal interface's state is changed to external, all prefixes and addresses assigned on the considered interface MUST be deleted, and the prefix assignment algorithm MUST be run.</t>
+	
+		<t>If an external interface's state is changed to internal, the prefix assignment algorithm MUST be run.</t>
 	
 	</section>
 
@@ -168,7 +208,7 @@ Note that several methods may be used to allocate such a prefix.
 		<t>As DHCP options are numerous and new one may be defined, specifying routers' behavior regarding each option is out of the scope of this document. In order to avoid misconfiguration, routers must follow the two following general rules:
 			<list style="symbols">
 				<t>A router MUST NOT advertise a prefix obtained through DHCPv6 PD if it doesn't understand the entirety of the provided options.</t>
-				<t>A router MUST NOT make or accept any assignment associated to delegated prefixes if it doesn't understand one of the DHCP options advertised with the delegated prefix.</t>
+				<t>A router MUST NOT make or accept any assignment associated to delegated prefixes if it doesn't understand the entirety of the DHCP options advertised along-with the delegated prefix.</t>
 			</list>
 		</t>
 
@@ -181,8 +221,17 @@ Note that several methods may be used to allocate such a prefix.
 		
 		<t>A router MUST consider itself as a designated router on a given link if one of the two following conditions is true:
 			<list style="symbols">
-				<t>There are no prefix assignments advertised on the given link.</t>
-				<t>The router is advertising at least one assignment on the link, and it has a higher router ID than all other routers that are advertising one or multiple assignments on the link.</t>
+				<t>The router's EAP list is empty.</t>
+				<t>Considering all the assignments advertised on the link, the router is advertising the one with:
+					<list style="numbers">
+						<t>The lowest authoritative bit.</t>
+						<t>In case of tie, the lowest priority.</t>
+						<t>In case of tie, the highest router ID.</t>
+					</list>
+					<list style="empty">
+						<t>Note: That particular order is due to the few cases where a router's assignment may be overridden by another router's assignment, with a higher priority. We want to avoid the designated router from loosing its status.</t>
+					</list>
+				</t>
 			</list>
 		</t>
 	
@@ -196,7 +245,7 @@ Note that several methods may be used to allocate such a prefix.
 			
 			<t>Routers's addresses pool, specified in <xref target="aa"/>, MUST be excluded.</t>
 			
-			<t>The DHCP server MUST as well provide addresses with valid and preferred lifetimes compatible with the delegated prefix's time values.</t>
+			<t>The DHCP server MUST provide addresses with valid and preferred lifetimes compatible with the delegated prefix's time values.</t>
 			
 			<t>In order to support a large variety of hosts, the delegated router SHOULD as well act as a stateless DHCP server, as specified in <xref target="RFC3736"/>, even when all assigned prefixes are of length 64.</t>
 			
@@ -205,13 +254,7 @@ Note that several methods may be used to allocate such a prefix.
 	
 	</section>
 
-	<section title="Router's Prefixes Assignment">
-
-		<t>An assignment is said to be owned by a router if and only if it is advertising it through the 'flooding protocol', as defined in <xref target="floodlap"/>. In order to avoid configuration changes, a router may own a prefix even when it doesn't considers itself as designated. In such a situation, the designated router CAN start advertising the assignment, hence inviting the first owner to stop advertising its now invalid assignment, as defined in <xref target="assignvalidity"/>.</t>
-		
-	</section>
-
-	<section title="Applying an Assignment on an Interface">
+	<section anchor="prefapply" title="Applying an Assignment on an Interface">
 	
 		<t>Once an assignment is made on some interface, a router first waits some time in order to detect possible collisions, as defined in <xref target="hysteresis"/>. Once the timeout is elapsed and no collision is detected, the prefix is applied by executing the following steps:
 			<list style="symbols">
@@ -268,16 +311,7 @@ advertised in Router Advertisements on an interface. The prefix is deprecated by
 	
 	<section anchor="floodlap" title="Flooding Assigned Prefixes">
 		
-		<t>The FP MUST provide a way to flood assigned prefixes and retrieve prefixes assigned by other routers. Retrieved entries must contain the following information.
-			<list style="hanging">
-				<t hangText="Prefix">The assigned prefix.</t>
-				<t hangText="Router ID">The router ID of the router that is advertising the assignment.</t>
-				<t hangText="Link ID">If the assignment is made on a connected link, an interface identifier of the interface connected to that link.</t>
-				<t hangText="Authoritative bit">A boolean that tells whether the assignment comes from a network authority (DHCP PD, manual configuration, etc...).</t>
-			</list>
-		</t>
-
-		<t>A router MUST advertise any owned assignment and notify the FP whenever one of the provided values is changed, or when the assignment is removed.</t>
+		<t>The FP MUST provide a way to flood assigned prefixes and retrieve prefixes assigned by other routers (EAPs). Retrieved entries MUST contain all the information specified in <xref target="struct"/>.</t>
 		
 	</section>
 	
@@ -323,9 +357,9 @@ advertised in Router Advertisements on an interface. The prefix is deprecated by
 		<t>The algorithm MUST be run whenever one of the following event occurs:
 			<list style="symbols">
 				<t>A delegated prefix is created or deleted.</t>
-				<t>An assignment made by another router (Externally Assigned Prefix) is created or deleted.</t>
+				<t>An assignment made by another router (Externally Assigned Prefix) is created, deleted or modified.</t>
 				<t>The router ID is modified.</t>
-				<t>Router starts or stops being designated on one of its internal links.</t>
+				<t>An external link becomes internal, or the opposite.</t>
 			</list>
 		</t>
 		
@@ -340,12 +374,8 @@ advertised in Router Advertisements on an interface. The prefix is deprecated by
 		<t>An assignment made by another router is said to be valid if all the following conditions are met:
 			<list style="symbols">
 				<t>It is included in an advertised delegated prefix that do not include any other advertised delegated prefix.</t>
-				<t>If the assignment's Authoritative bit is not set:
-					<list style="numbers">
-						<t>The prefix is not included or does not include any other assignment's prefix being advertised by a router with a strictly higher router ID than the assignment's advertiser.</t>
-						<t>No other assignment whose prefix is included in the same delegated prefix is being advertised on the same link by a router with a strictly higher router ID, or with an Authoritative bit set to one.</t>
-					</list>
-				</t>
+				<t>The prefix is not included or does not include any other assignment with a higher precedence.</t>
+				<t>No other assignment which prefix is included in the same delegated prefix, and with a higher precedence, is being advertised on the same link.</t>
 			</list>
 		</t>
 		
@@ -357,12 +387,19 @@ advertised in Router Advertisements on an interface. The prefix is deprecated by
 		
 	</section>
 	
-	<section title="Accepting an Assignment">
+	<section title="Accepting an Externaly Assigned Prefix">
 		
-		<t>An assignment is said to be accepted when the assigned prefix is currently being advertised, on the same link, by a different router. When a router accepts a neighbor's assignment, it starts a timer as specified in <xref target="hysteresis"/>. The prefix will be advertised if and only if the algorithm specifies that the accepted prefix must be owned. When an assignment is accepted, the content of the Externally Assigned Prefix is copied to a new Locally Assigned Prefix.</t>
-		
-		<t>An invalid assignment MUST NOT be accepted.</t>
-		
+		<t>An EAP is said to be accepted when the EAP is currently being advertised, on the same link, by a different router, and will be used by the accepting router. When a router accepts a neighbor's assignment, it starts a timer as specified in <xref target="hysteresis"/>. A new LAP is created from the EAP, with:
+			<list style="symbols">
+				<t>The same prefix.</t>
+				<t>The same link ID.</t>
+				<t>The authoritative bit set to false.</t>
+				<t>The same priority.</t>
+				<t>The advertised bit value set as specified by the algorithm.</t>
+				<t>The applied bit set to false. It may be switched to true when the timer elapsed.</t>
+			</list>
+		</t>
+
 	</section>
 		
 	<section title="Making a New Assignment">
@@ -380,7 +417,7 @@ advertised in Router Advertisements on an interface. The prefix is deprecated by
 		
 		<t>If no available prefix is found, the assignment fails. If implemented, the router may decide to execute the Prefix Scarcity Avoidance mechanisms, as proposed in <xref target="scarcity"/>.</t>
 		
-		<t>A new assignment is always marked as owned when created and, therefore, advertised through the flooding protocol.</t>
+		<t>A new assignment is always marked as advertised when created and therefore immediately provided to the flooding protocol.</t>
 		
 	</section>
 	
@@ -390,8 +427,8 @@ advertised in Router Advertisements on an interface. The prefix is deprecated by
 		
 		<t>There are two kinds of authoritative assignment.
 			<list style="symbols">
-				<t>When manually assigning a prefix to some interface, the Authoritative Assignment MUST be marked as owned and MUST be advertised as assigned on its associated interface. Just like normal assignments, it MUST NOT be applied before the delay specified in <xref target="hysteresis"/> elapsed.</t>
-				<t>When an authority wants to prevent some prefix from being used, a Virtual Authoritative Assignment CAN be used. Such assignments MUST NOT be applied, and MUST be marked as owned. They MUST be advertised as assigned to either no-interface, or a fake interface (Depending on the flooding protocol capabilities).
+				<t>When manually assigning a prefix to some interface, the Authoritative Assignment MUST be marked as advertised. Just like normal assignments, it MUST NOT be applied before the delay specified in <xref target="hysteresis"/> elapsed.</t>
+				<t>When an authority wants to prevent some prefix from being used, a Virtual Authoritative Assignment CAN be used. Such assignments MUST NOT be applied, and MUST be marked as advertised. They MUST be given to the flooding protocol as assigned to either no-interface, or a fake interface (Depending on the flooding protocol capabilities).
 				</t>
 			</list>
 		</t>
@@ -404,27 +441,37 @@ advertised in Router Advertisements on an interface. The prefix is deprecated by
 		
 	</section>
 	
+	<section title="Choosing the Assignment's Priority">
+		
+		<t>When either a new assignment is made, or an authoritative assignment is created, the creating router needs to choose which priority to use. Whenever the delegated router accepts that assignment, it will use the same value and advertise it in its own EAPs.</t>
+		
+		<t><list style="symbols">
+			<t>8 SHOULD be used as default.</t>
+			<t>Other values between 6 and 10 MAY be dynamically chosen by the implementation.</t>
+			<t>Other values between 4 and 12 MUST NOT be used if not stated by an authority (by static or dynamic configuration).</t>
+			<t>Other values are reserved.</t>
+		</list></t>
+		
+	</section>
+	
 	<section title="Algorithm steps">
 		
 		<t>At the beginning of the algorithm, all assignments that do not have their Authoritative bit set are marked as 'invalid', and the router computes for each link whether it is the designated router.</t>
 		
 		<t>The following steps are then executed for every combination of delegated prefix and interface.
-			<list style="numbers">
+			<list style="symbols">
 				<t>If the current interface is external, ignore that interface.</t>
 				<t>If the delegated prefix strictly contains another delegated prefix, ignore that delegated prefix.</t>
 				<t>If the delegated prefix is equal to an already considered delegated prefix, ignore that delegated prefix.</t>
-				<t>Look for a valid local assignment, made on the current interface and included in the current delegated prefix.</t>
-				<t>Look for a valid external assignment (i.e. advertised by another router) on the current interface and included in the current delegated prefix.</t>
+				<t>Look for a valid EAP on the current interface and included in the current delegated prefix.</t>
+				<t>Look for a local assignment, made on the current interface and included in the current delegated prefix.</t>
+				
 				<t>There are four possibilities at this stage.
-					 <list style="symbols">
-						 <t>If no local assignment was found, and no external assignment was found, a new assignment MUST be made if and only if the router considers itself as the designated router.</t>
-						 <t>If no local assignment was found, and an external assignment was found, the external assignment MUST be accepted. If the external assignment has its Authority bit to false, and if the router considers itself as designated, the accepted assignment MAY be marked as owned.
-						 	<list style="empty">
-								<t>Note: In such a situation, marking accepted prefixes as owned will make the algorithm converge to a state where designated router owns (and therefore advertises) all the assignment made on a link that have their Authority bit set to false.</t>
-							</list>
-						 </t>
-						 <t>If a local assignment was found, and no external assignment was found, the local assignment is marked as valid and owned.</t>
-						 <t>If a local assignment was found, and an external assignment was found as well, we know both have their Authority flags set to true (because both could not be valid otherwise). If the two prefixes are different, a warning should raised. In both cases, the external assignment MUST be ignored.</t>
+					 <list style="numbers">
+						 <t>If no LAP is found, and no EAP is found, a new assignment MUST be made if and only if the router considers itself as the designated router.</t>
+						 <t>If no LAP is found, and an EAP is found, the external assignment MUST be accepted. If the router considers itself as designated, the accepted assignment MUST be advertised.</t>
+						 <t>If a LAP is found, and no EAP is found, the router MUST check if the LAP is valid. If it is, the local assignment is marked as valid and advertised. If it isn't, it is destroyed and the algorithm applies case 1.</t>
+						 <t>If both LAP and EAP are found, the router must check if the prefixes are the same. If it isn't and if the LAP's Authoritative bit is not set, the LAP MUST be deleted and the algorithm applies case 2. If the prefixes are the same, the LAP must be updated with the EAP's priority value, marked as valid, and advertised if and only if the router considers itself as designated on the link.</t>
 					 </list>
 				</t>
 			</list>
@@ -486,6 +533,8 @@ advertised in Router Advertisements on an interface. The prefix is deprecated by
 </section>
 
 <section anchor="hysteresis" title="Hysteresis Principle">
+	
+	<t>When the flooding protocol is started, the router MUST wait FLOODING_DELAY before executing the prefix assignment algorithm for the first time.</t>
 	
 	<t>Prefix and address assignment algorithms are distributed. Collisions may occur, but network configuration, routing protocols or upper layers should not suffer from these collisions. For this reason, all assignments that could imply collisions are not immediately applied.
 	
