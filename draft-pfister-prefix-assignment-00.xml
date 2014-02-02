@@ -57,7 +57,7 @@
 
 <abstract>
 
-	<t>This memo describes a home network prefix and address assignment algorithm running on top of any 'flooding protocol' that holds the specified requirements. It is expected that home gateway routers are allocated one or multiple IPv6 prefixes through DHCPv6 Prefix Delegation (PD) or that prefixes are made available through other means. An IPv4 address can also be allocated and private addresses be used with NAT to provide IPv4 connectivity. In both cases, the prefix needs to be divided efficiently among the multiple links, and routers need to obtain addresses. This memo describes a distributed algorithm for IPv4 and IPv6 prefix division, assignment, router's address assignment and hosts address assignment and configuration using DHCP.</t>
+	<t>This memo describes a home network prefix and address assignment algorithm running on top of any 'flooding protocol' that fulfills the specified requirements. It is expected that home gateway routers are allocated one or multiple IPv6 prefixes through DHCPv6 Prefix Delegation (PD) or that prefixes are made available through other means. An IPv4 address can also be allocated and private addresses be used with NAT to provide IPv4 connectivity. In both cases, provided prefixes need to be efficiently divided among the multiple links and routers need to obtain addresses. This document describes a distributed algorithm for IPv4 and IPv6 prefixes division, assignment and router's address assignment, and specifies how hosts can be given addresses and configuration options using DHCP or SLAAC.</t>
 
 </abstract>
 
@@ -66,12 +66,11 @@
 
 <section anchor="intro" title="Introduction">
 
-	<t>This memo describes a fully distributed prefix and address assignment algorithm for home networks, running on top of any 'flooding protocol' that fulfills the specified requirements. It is expected that home gateway routers are allocated one or multiple IPv6 prefixes through DHCPv6 Prefix Delegation (PD) <xref target="RFC3633"/> or that prefixes are made available through other means. For instance, when an IPv4 address is provided, a home private IPv4 prefix may be used with NAT to provide IPv4 connectivity to the whole home, as well as Unique Local Address prefixes <xref target="RFC4193"/> may be used when no IPv6 connectivity is provided at all.</t>
+	<t>This memo describes a fully distributed prefix and address assignment algorithm for home networks, running on top of any 'flooding protocol' that fulfills the specified requirements. It is expected that home gateway routers are allocated one or multiple IPv6 prefixes through DHCPv6 Prefix Delegation (PD) <xref target="RFC3633"/> or that prefixes are made available through other means. When an IPv4 address is provided, a home private IPv4 prefix may be used with NAT to provide IPv4 connectivity to the whole home, as well as Unique Local Address prefixes <xref target="RFC4193"/> may be used in order to provide internal connectivity whenever global internet connectivity is lost.</t>
 
-	<t>Such available IPv6 or IPv4 prefixes need to be efficiently divided among the multiple links. For the purposes of this document, we refer to this process as prefix assignment. This memo describes an algorithm for such prefix division, assignment and router's address assignment, as well as the way hosts can be given addresses and configuration options using DHCP or SLAAC.</t>
+	<t>Obtained IPv6 or IPv4 prefixes need to be efficiently divided among the multiple links. For the purposes of this document, we refer to this process as prefix assignment. This memo describes an algorithm for such prefix division, assignment and router's address assignment, as well as the way hosts can be given addresses and configuration options using DHCP or SLAAC.</t>
 
-	<t>Although default prefix lengths are proposed and /64s are recommended, the algorithm do not require routers to assign prefixes of particular lengths. When a delegated prefix is too small considered the number of links in the home network, smaller prefixes can be assigned to each links in order to avoid prefix scarcity.</t>
-
+	<t>Although this document recommends the use of 64 bits long prefixes, the algorithm do not require routers to assign prefixes of particular lengths. When a delegated prefix is too small considered the number of links in the home network, higher priority links may be privileged or smaller prefixes can be assigned in order to avoid prefix scarcity.</t>
 	
 
 	<t>The rest of this memo is organized as follows. <xref target="kwd"/> defines the usual keywords, <xref target="role"/> outlines the algorithms functioning and features, <xref target="router"/> describes how a home router behaves when running the prefix and address assignment algorithm. Requirements for the underlying flooding protocol are detailed in <xref target="flood"/>. The prefix assignment algorithm is detailed in <xref target="pa"/> while <xref target="aa"/> concentrates on the address assignment algorithm. <xref target="hysteresis"/> explains the hysteresis principles applied to both prefix and address assignments, <xref target="ula-ipv4"/> specifies the procedures for automatic generation of ULA and IPv4 prefixes, <xref target="manag"/> explains what administrative interfaces are useful for advanced users that wish to manually interact with the mechanisms, <xref target="sec"/> discusses the security aspects of the design. Finally, <xref target="scarcity"/> provides implementation guidelines for the optional scarcity avoidance mechanism.</t>
@@ -90,13 +89,13 @@
 
 <section anchor="role" title="Prefix and Address Assignment Algorithms' Outline">
 	
-	<t>Given one or multiple prefixes for the entire network, each prefix is subdivided by the prefix assignment algorithm so that every link is given its own assigned prefix. Assignments are advertised through the whole network using the underlying flooding protocol, collisions are detected and valid assignments are chosen and applied on every link. Once a prefix is applied, hosts and routers may start to be given addresses.
+	<t>Given one or multiple prefixes for the entire network, each prefix is subdivided by the prefix assignment algorithm so that every link is given one assignment per available prefix. Assignments are advertised through the whole network using the underlying flooding protocol, collisions are detected and valid assignments are chosen and applied on every link. Once a prefix is applied, hosts and routers may start to be given addresses.
 	
 		In summary, the algorithm works in four steps:
 			<list style="numbers">
 				<t>The home is given IPv6 or IPv4 prefixes called Delegated Prefixes (DPs).</t>
 				<t>Each link is provided an Assigned Prefix (AP) from each available Delegated Prefix.</t>
-				<t>Routers choose which assigned prefixes to use (Chosen Prefixes, CPs).</t>
+				<t>Routers internally check for AP's validity and selects Chosen Prefixes (CPs).</t>
 				<t>Once a link is given an assignment, routers may get addresses in specified address pools and hosts may be configured by the per-link elected DHCP server.</t>
 			</list>
 	</t>
@@ -110,13 +109,15 @@
 			
 			<t>IPv4 connectivity is provided whenever a home router gets an IPv4 address. To do so, a private IPv4 delegated prefix is generated and prefixes are assigned just like for IPv6.</t>
 			
-			<t>When no IPv6 delegated prefix is provided, the network may spontaneously generate and use a Unique Local Address (ULA) prefix.</t>
+			<t>The network may spontaneously generate and use a Unique Local Address (ULA) prefix.</t>
 			
 			<t>Assignments are stable across reboots and some network changes (Adding or removing a router will not change assignment).</t>
 			
 			<t>DHCP options like DNS servers, prefix colors, or any upcoming options may be attached to each prefixes and may be relayed down to the host when giving him an address.</t>
 			
+			<t>The user can manually assign prefixes to links. Such assignments will take precedence over automatically assigned prefixes.</t>
 			
+			<t>Assignments and interfaces can be given priorities. When a delegated prefix is too small, such values may be used to prioritize prefix assignment to certain links.</t>
 			
 		</list>
 	</t>
@@ -125,7 +126,7 @@
 
 <section anchor="router" title="Router Behavior">
 	
-	<t>In a home network, all routers that want to participate in the prefix assignment algorithm MUST fulfill the requirements defined in the memo. They MUST also use the same flooding protocol and routing protocol. The presence of a router that do not implement the flooding protocol and prefix assignment algorithm will not prevent the network from working as long as:
+	<t>In a home network, all routers that want to participate in the prefix assignment algorithm MUST fulfill the requirements defined in the memo. They MUST also use the same flooding protocol and routing protocol. The presence of an internal router that do not implement the flooding protocol and prefix assignment algorithm will not prevent the network from working as long as:
 		<list style="symbols">
 			<t>It doesn't act as a DHCP server on a link which is considered as internal by any other router.</t>
 			<t>It doesn't use any prefix that may be used by the prefix assignment algorithm.</t>
@@ -142,7 +143,7 @@
 				<t hangText="Router ID">The identifier of the advertising router.</t>
 				<t hangText="Link ID">If the assignment is made on a connected link, an interface identifier of the interface connected to that link.</t>
 				<t hangText="Authoritative bit">A boolean that tells whether the assignment comes from a network authority (DHCP PD, manual configuration, etc...).</t>
-				<t hangText="Assignment's Priority">A value between 0 and 15, quantifying the assignment's priority.</t>
+				<t hangText="Assignment's Priority">A value between PRIORITY_MIN and PRIORITY_MAX, quantifying the assignment's priority.</t>
 			</list>
 			The AP list is the result of the information provided by the flooding protocol, as specified in <xref target="floodlap"/>.</t>
 	
@@ -151,7 +152,7 @@
 				<t hangText="Prefix">The assigned prefix.</t>
 				<t hangText="Link ID">An interface identifier of the interface connected to the link on which the assignment is made.</t>
 				<t hangText="Authoritative bit">A boolean that tells whether the assignment comes from a network authority (DHCP PD, manual configuration, etc...).</t>
-				<t hangText="Assignment's Priority">A value between 0 and 15, quantifying the assignment's priority.</t>
+				<t hangText="Assignment's Priority">A value between PRIORITY_MIN and PRIORITY_MAX, quantifying the assignment's priority.</t>
 				<t hangText="Advertised">Whether that assignment is being advertised by the flooding protocol <xref target="floodlap"/>.</t>
 				<t hangText="Applied">Whether that assignment is applied on link's configuration <xref target="prefapply"/>.</t>
 			</list>
@@ -159,7 +160,7 @@
 		
 		<t>Chosen Prefixes that are marked as 'Advertised' are sent to other routers through the flooding protocol, and are therefore considered as Assigned Prefixes by other routers. The Prefix Assignment Algorithm goal is to make sure that all routers, on each link, select the same set of Chosen Prefixes.</t>
 
-		<t>The router MUST maintain a database of all its own address assignments, and address assignments made by other routers on connected links. The latter are learned through the mechanisms described in <xref target="floodlaa"/></t>
+		<t>The router MUST maintain a database of all its own address assignments, and address assignments made by other routers on connected links. The latter are learned through the mechanisms described in <xref target="floodlaa"/>.</t>
 		
 	
 	</section>
@@ -201,7 +202,7 @@
 
 	<section anchor="desrouter" title="Designated Router">
 	
-		<t>In situations where a DHCP server is needed on some link, it is necessary to elect a link leader. That leader is called designated router and is dynamically chosen by the prefix assignment algorithm.</t>
+		<t>On a link where custom host configuration must be provided, or whenever SLAAC could not be used, a DHCP server must be elected. That router is called designated router and is dynamically chosen by the prefix assignment algorithm.</t>
 		
 		<t>A router MUST consider itself as a designated router on a given link if one of the two following conditions is true:
 			<list style="symbols">
@@ -220,14 +221,14 @@
 		</t>
 	
 		<section anchor="sendras" title="Sending Router Advertisement">
-			<t>On a given link, the designated router MUST send router advertisements including Prefix Information Options for all the Chosen Prefixes associated to that link. SLAAC MUST be enabled whenever the prefix length is 64. The valid and preferred lifetimes MUST be set to values lower or equal to the associated Delegated Prefix valid and preferred lifetimes.</t>
+			<t>On a given link, the designated router MUST send router advertisements including Prefix Information Options for all the Chosen Prefixes associated to that link. SLAAC MAY be enabled depending on the router's configuration and assignments prefix length. The valid and preferred lifetimes MUST be set to values lower or equal to the associated Delegated Prefix valid and preferred lifetimes.</t>
 		</section>
 		
 		<section anchor="dhcpserver" title="Being the DHCP Server">
 			
-			<t>On a given link, whenever at least a Chosen Prefix is of length higher than 64 bits, or DHCP options must be provided to hosts, the designated router MUST act as a DHCP server on the given link and serve addresses for all assignments on the given link. A router MUST stop behaving as a DHCP server whenever it is not designated anymore.</t>
+			<t>On a given link, whenever SLAAC can't be used for all assignments, or DHCP options must be provided to hosts, the designated router MUST act as a DHCP server on the given link and serve addresses for all assignments on the given link. A router MUST stop behaving as a DHCP server whenever it is not designated anymore.</t>
 			
-			<t>Routers's addresses pool, specified in <xref target="aa"/>, MUST be excluded.</t>
+			<t>Routers's addresses pool, specified in <xref target="aa"/>, MUST be excluded from DHCP hosts pools.</t>
 			
 			<t>The valid and preferred lifetimes MUST be set to values lower or equal to the associated Delegated Prefix valid and preferred lifetimes.</t>
 			
@@ -262,7 +263,7 @@
 	
 		<t>Whenever the router has knowledge of a DNS server, or is acting as a DNS relay, it SHOULD include DNS DHCPv6 option (<xref target="RFC3646"/>) when configuring a host and include the Router Advertisement DNS options (<xref target="RFC6106"/>) when sending RAs.</t>
 	
-		<t>DNS server selection in multi-homed networks is a complex issue that this document doesn't intend to solve. One should look at IETF's mif working-group documents in order to obtain guidelines concerning DNS server selection. It is RECOMMENDED that designated routers turns on a local DNS relay that fetches information from provided DNS servers. As a basic DNS selection algorithm, it MAY look at the source address of incoming requests in order to use the DNS server associated with the delegated prefix which the source address is from. If no such DNS server is found, a different one, or a default one, CAN be used.</t>
+		<t>DNS server selection in multi-homed networks is a complex issue that this document doesn't intend to solve. One should look at IETF's mif working-group documents in order to obtain guidelines concerning DNS server selection. It is RECOMMENDED that designated routers turns on a local DNS relay that fetches information from provided DNS servers.</t>
 
 	</section>
 
@@ -309,7 +310,7 @@
 			</list>
 		</t>
 		
-		<t>The FP must make sure time values are consistent throughout the network. If no time synchronization protocol is used, the FP should keep track of prefix age across the network and within its database in order to provide a precision of at least a few seconds.</t>
+		<t>The FP MUST make sure time values are consistent throughout the network (i.e. differences are small compared to Delegated Prefixes lifetimes). If no time synchronization protocol is used, the FP MUST keep track of prefix age across the network and within its database.</t>
 		
 	</section>
 	
@@ -323,22 +324,22 @@
 
 <section anchor="pa" title="Prefix Assignment Algorithm">
 	
-	<t>The prefix assignment algorithm assigns at most one prefix from each available delegated prefix on every link that is considered as internal by at least one connected router. The algorithm itself makes no difference whether the delegated prefix is global IPv6, ULA or IPv4. IPv4 prefixes are considered as written in their IPv6 form (i.e. ::ffff:A.B.C.D/X with X >= 96).</t>
+	<t>The Prefix Assignment Algorithm is a distributed algorithm that assigns one prefix from each available Delegated Prefix on every link that is considered as internal by at least one connected router. The algorithm itself makes no difference whether the delegated prefix is global IPv6, ULA or IPv4. IPv4 prefixes are considered as written in their IPv6 form (i.e. ::ffff:A.B.C.D/X with X >= 96).</t>
 	
-	<t>When the Prefix Assignment Algorithm is executed, combinations of delegated prefixes and internal interfaces are being considered. If a delegated prefix contains another delegated prefix, it is ignored. Address assignments from disjoint delegated prefixes are completely independent. For the purpose of this discussion, the Aggregated Prefix will be referred to as the current Aggregated Prefix, and the interface will be referred to as the current Interface.</t>
+	<t>When the Prefix Assignment Algorithm is executed, combinations of Delegated Prefixes and internal interfaces are being considered. If a delegated prefix contains another delegated prefix, it is ignored. Address assignments from disjoint delegated prefixes are completely independent. For the purpose of this discussion, the Aggregated Prefix will be referred to as the current Aggregated Prefix, and the interface will be referred to as the current Interface.</t>
 	
 	<section title="When to execute the Prefix Assignment Algorithm">
 		
 		<t>The algorithm MUST be run whenever one of the following event occurs:
 			<list style="symbols">
-				<t>A delegated prefix is created or deleted.</t>
-				<t>An assignment made by another router (Externally Assigned Prefix) is created, deleted or modified.</t>
+				<t>A Delegated Prefix is created or deleted (A DP must be deleted when its lifetime is exceeded).</t>
+				<t>A Prefix Assignment is created, deleted or modified.</t>
 				<t>The router ID is modified.</t>
-				<t>An external link becomes internal, or the opposite.</t>
+				<t>An external link becomes internal, or an internal link becomes external.</t>
 			</list>
 		</t>
 		
-		<t>It is NOT REQUIRED that the algorithm is synchronously run each time such an event occurs. But the delay between the event and the algorithm execution MUST be small compared to network delays.</t>
+		<t>It is not required that the algorithm is synchronously run each time such an event occurs. But the delay between the event and the algorithm execution MUST be small compared to FLOODING_DELAY.</t>
 		
 	</section>
 	
@@ -357,8 +358,8 @@
 	<section anchor="assignvalidity" title="Testing Assignment's validity">
 		
 		<t>An assignment made by another router is said to be valid if all the following conditions are met:
-			<list style="symbols">
-				<t>It is included in an advertised Delegated Prefix that do not include any other Advertised Delegated prefix.</t>
+			<list style="numbers">
+				<t>It is included in an advertised Delegated Prefix that do not include any other advertised Delegated prefix.</t>
 				<t>The prefix is not included or does not include any other Assigned Prefix with a higher precedence.</t>
 				<t>No other assignment which prefix is included in the same Delegated Prefix, and with a higher precedence, is being advertised on the same link.</t>
 			</list>
@@ -368,7 +369,7 @@
 	
 	<section anchor="assignavailable" title="Testing Assignment's availability">
 		
-		<t>A prefix is said to be available if it is not included and doesn't include any other assignment made by any router in the network.</t>
+		<t>A prefix is said to be available if it is not included and does not include any other assignment made by any router in the network.</t>
 		
 	</section>
 	
@@ -398,7 +399,7 @@
 			</list>
 		</t>
 		
-		<t>When the algorithm decides to make a new assignment, it looks in the stable storage for an available assignment that was previously applied on the current interface and that is included in the current delegated prefix. If no available assignment can be found this way, the new prefix MUST be randomly selected among prefixes in the current delegated prefix that are still available. Implementing a uniform selection among all available prefixes may be challenging, but an implementation SHOULD at least be able to make an exhaustive search when the address space is small, and make multiple tentatives when the address space is too big.</t>
+		<t>When the algorithm decides to make a new assignment, it looks in the stable storage for an available assignment that was previously applied on the current interface and that is included in the current delegated prefix. If no available assignment can be found this way, the new prefix MUST be randomly selected among prefixes in the current Delegated Prefix that are still available. Implementing a uniform selection among all available prefixes may be challenging, but an implementation SHOULD at least be able to make an exhaustive search when the address space is small, and make multiple tentatives when the address space is too big.</t>
 		
 		<t>If no available prefix is found, the assignment fails. If implemented, the router MAY decide to execute the Prefix Scarcity Avoidance mechanisms, as proposed in <xref target="scarcity"/>.</t>
 		
@@ -429,7 +430,7 @@
 			</list>
 		</t>
 		
-		<t>When a delegated prefix is obtained through DHCP PD with a non-null excluded prefix, as specified in <xref target="RFC6603"/>, a Authoritative Prefix Assignment MUST be created with the excluded prefix.
+		<t>When a delegated prefix is obtained through DHCP PD with a non-null excluded prefix, as specified in <xref target="RFC6603"/>, an Authoritative Prefix Assignment MUST be created with the excluded prefix.
 			<list style="empty">
 				<t>Note: If the router doesn't know the excluded prefix DHCPv6 option, the delegated prefix is ignored, as specified in <xref target="obtprefix"/>.</t>
 			</list>
@@ -461,8 +462,8 @@
 				<t>If the current interface is external, ignore that interface.</t>
 				<t>If the delegated prefix strictly contains another delegated prefix, ignore that delegated prefix.</t>
 				<t>If the delegated prefix is equal to an already considered delegated prefix, ignore that delegated prefix.</t>
-				<t>Look for a valid Assigned Prefix, advertised by other routers on the current interface and included in the current delegated prefix.</t>
-				<t>Look for a Chosen Prefix associated to the current interface and included in the current delegated prefix.</t>
+				<t>Look for a valid Assigned Prefix, advertised by another router on the current interface and included in the current Delegated Prefix.</t>
+				<t>Look for a Chosen Prefix associated to the current interface and included in the current Delegated Prefix.</t>
 				
 				<t>There are four possibilities at this stage.
 					 <list style="numbers">
@@ -509,7 +510,7 @@
 		
 		<t>In this section, we say an address assignment is made by some router when it intends to use, or is using the address specified by this assignment. An assignment, made by some router, MUST be advertised on the link on which the assignment is made. Similarly, an address assignment is said to be applied when the address is pushed to the router's interface configuration. It is unapplied otherwise.</t>
 
-		<t>Routers MUST store applied address assignments in stable storage and reuse the same addresses whenever possible. At least the five previously applied addresses should be used.</t>
+		<t>Routers MUST store applied address assignments in stable storage and reuse the same addresses whenever possible. At least the five previously applied addresses should be stored.</t>
 		
 		<t>For a given prefix assignment, an address is said to be available if it is within the router's address pool associated to the prefix assignment, and it is not being advertised by any other router. If the flooding protocol provides interface identifier along-with address assignments, looking for collisions on considered link is enough.</t>
 	
@@ -537,8 +538,8 @@
 	<t>Prefix and address assignment algorithms are distributed. Collisions may occur, but network configuration, routing protocols or upper layers should not suffer from these collisions. For this reason, all assignments that could imply collisions are not immediately applied.
 	
 		<list style="symbols">
-			<t>A router MUST not apply a Chosen Prefix before it waited 2*FLOODING_DELAY. If, during the whole waiting time, the entry is still valid, it MUST be applied to the link it is assigned.</t>
-			<t>A router MUST not apply an Assigned Address before it waited 2*FLOODING_DELAY_LL. If, during the whole waiting time, the assignment is still valid, it MUST be applied to the interface it is assigned.</t>
+			<t>A router MUST NOT apply a Chosen Prefix before it waited 2*FLOODING_DELAY. If, during the whole waiting time, the entry is still valid, it MUST be applied to the link it is assigned.</t>
+			<t>A router MUST NOT apply an Assigned Address before it waited 2*FLOODING_DELAY_LL. If, during the whole waiting time, the assignment is still valid, it MUST be applied to the interface it is assigned.</t>
 		</list>
 	</t>
 
@@ -557,7 +558,7 @@
 			</list>
 		</t>
 	
-		<t>A router MUST stop advertising a ULA spontaneously generated prefix whenever another router is advertising a ULA delegated prefix.</t>
+		<t>A router MUST stop advertising a spontaneously generated ULA prefix whenever another router is advertising a ULA delegated prefix.</t>
 
 		<t>The more recently used ULA prefix SHOULD be stored in stable storage by all routers and reused whenever choosing a new ULA delegated prefix. If no ULA prefix can be found in stable storage, it MUST be randomly generated, or generated from hardware specific values.</t>
 	
@@ -594,11 +595,13 @@
 
 <figure>
 <artwork>
-PRIORITY_DEFAULT          8
-PRIORITY_AUTO_MIN         6
-PRIORITY_AUTO_MAX         10
+PRIORITY_MIN              0
 PRIORITY_AUTHORITY_MIN    4
+PRIORITY_AUTO_MIN         6
+PRIORITY_DEFAULT          8
+PRIORITY_AUTO_MAX         10
 PRIORITY_AUTHORITY_MAX    12
+PRIORITY_MAX              15
 </artwork>
 </figure>
 
@@ -622,9 +625,9 @@ PRIORITY_AUTHORITY_MAX    12
 	</list>
 </t>
 
-<t>If a malicious router is able to authenticate itself in a network protected as in the third case. Most of the previously listed attacks may still be performed, but traffic could only be redirected toward the origination of the attack, and the source of the attack could identified.</t>
+<t>If a malicious router is able to authenticate itself in a network protected as in the third case, most of the previously listed attacks may still be performed, but traffic could only be redirected toward the origination of the attack, and the source of the attack could identified.</t>
 
-<t>In any case, in order to protect the network, the routing protocol as well as the way hosts are configured also needs to be protected, hence requiring other link or IP layer solutions like IPSec, SeND, WPA, etc...</t>
+<t>In any case, in order to protect the network, the routing protocol as well as the way hosts are configured also needs to be protected, hence requiring other link (e.g. WPA) or IP layer (e.g. IPSec or SeND) security solutions.</t>
 
 </section>
 
@@ -653,11 +656,11 @@ PRIORITY_AUTHORITY_MAX    12
 
 <section anchor="scarcity" title="Scarcity Avoidance Mechanism">
 	
-	<t>When not enough addresses are available, a router may decide to execute procedures intended to avoid prefix scarcity situations. Different approaches are possible. This section intends to provide guidelines for such procedures implementation. They are optional and are compatible with routers that only support basic requirements defined in this document.</t>
+	<t>When not enough addresses are available, a router may decide to execute procedures intended to avoid prefix scarcity. Different approaches are possible. This section intends to provide guidelines for such procedures implementation. They are optional and are compatible with routers that only support basic requirements defined in this document.</t>
 	
 	<section title="Increasing Assigned Prefix Length">
 		
-		<t>When a new assignment can't be created, and if not forbidden by the router's configuration, the router MAY increase the size of the desired prefix. For instance, if an available /64 can't be found, the router may look for a /80. Nevertheless, this imply using DHCPv6 instead of SLAAC, which should be avoided.</t>
+		<t>When a new assignment can't be created, and if not forbidden by the router's configuration, the router MAY increase the size of the desired prefix. For instance, if an available /64 can't be found, the router may look for a /80. Nevertheless, this imply using DHCPv6 instead of SLAAC, which SHOULD be avoided.</t>
 		
 	</section>
 	
@@ -667,6 +670,8 @@ PRIORITY_AUTHORITY_MAX    12
 		
 		<t>Such an allocation is considered as dynamic. The Authoritative bit MUST NOT be set and the priority MUST be among values authorized as dynamically chosen in <xref target="priovalues"/>.</t>
 		
+		<t>When different prefixes lengths are being used, the random prefix selection MUST NOT be uniform among all possibilities, but privilege prefixes contained in bigger prefixes that cannot be allocated. For instance, if 2001::/56 is the DP, and 2001:0:0:0:1::/80 is an assigned prefix, other /80 should be chosen in 2001:0:0:0:1::/64 before being chosen in other /64s.</t>
+		
 	</section>
 	
 	<section title="Cutting an Existing Assignment">
@@ -675,7 +680,7 @@ PRIORITY_AUTHORITY_MAX    12
 		
 		<t>Such allocation are considered as required by an authority. The Authoritative bit MAY be set and the priority MUST be among values authorized as specified by an authority in <xref target="priovalues"/>.</t>
 		
-		<t>As an example, if a router can't find a /64 for a link that, with a high priority, must be given a /64, it chooses a prefix assigned by some other router, to another link, with a smaller priority, and creates a new Chosen Prefix is an higher priority. The other router will be forced to remove its own assignment, hence making the new assignment valid.</t>
+		<t>As an example, if a router can't find a /64 for a link that, with a high priority, must be given a /64, it chooses a prefix assigned by some other router, to another link, with a lower priority, and creates a new Chosen Prefix with an higher priority. The other router will be forced to remove its own assignment, hence making the new assignment valid.</t>
 	
 	</section>
 	
