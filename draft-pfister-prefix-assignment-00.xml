@@ -20,19 +20,7 @@
 <city>Paris</city>
 <country>France</country>
 </postal> 		
-<email>ppfister@cisco.com</email>
-</address>
-</author>
-
-<author initials="J" surname="Arkko" fullname="Jari Arkko">
-<organization>Ericsson</organization>
-<address>
-<postal>
-<street/>
-<city>Jorvas</city> <code>02420</code>
-<country>Finland</country>
-</postal>
-<email>jari.arkko@piuha.net</email>
+<email>pierre@darou.fr</email>
 </address>
 </author>
 
@@ -48,6 +36,17 @@
 </address>
 </author>
 
+<author initials="J" surname="Arkko" fullname="Jari Arkko">
+<organization>Ericsson</organization>
+<address>
+<postal>
+<street/>
+<city>Jorvas</city> <code>02420</code>
+<country>Finland</country>
+</postal>
+<email>jari.arkko@piuha.net</email>
+</address>
+</author>
 
 <date month="Jan" year="2014" />
 
@@ -138,24 +137,26 @@
 		<t>The router MUST maintain a list of all the Delegated Prefixes. These prefixes may be locally generated, as described in <xref target="obtprefix"/>, or come from other routers as described in <xref target="flooddp"/>.</t>
 	
 		<t>The router MUST maintain a list of all the Assigned Prefixes advertised by other routers. They are learnt through the mechanisms described in <xref target="floodlap"/> and MUST contain the following information:
-			<list style="hanging">
-				<t hangText="Prefix">The assigned prefix.</t>
-				<t hangText="Router ID">The identifier of the advertising router.</t>
-				<t hangText="Link ID">If the assignment is made on a connected link, an interface identifier of the interface connected to that link.</t>
-				<t hangText="Authoritative bit">A boolean that tells whether the assignment comes from a network authority (DHCP PD, manual configuration, etc...).</t>
-				<t hangText="Assignment's Priority">A value between PRIORITY_MIN and PRIORITY_MAX, quantifying the assignment's priority.</t>
+			<list style="hanging" hangIndent="6">
+				<t hangText="Prefix:">The assigned prefix.</t>
+				<t hangText="Router ID:">The identifier of the advertising router.</t>
+				<t hangText="Link ID:">If the assignment is made on a connected link, an interface identifier of the interface connected to that link.</t>
+				<t hangText="Authoritative bit:">A boolean that tells whether the assignment comes from a network authority (DHCP PD, manual configuration, etc...).</t>
+				<t hangText="Assignment's Priority:">A value between PRIORITY_MIN and PRIORITY_MAX, quantifying the assignment's priority.</t>
 			</list>
+			<vspace />
 			The AP list is the result of the information provided by the flooding protocol, as specified in <xref target="floodlap"/>.</t>
 	
 		<t>The router MUST maintain a list of all prefixes currently chosen to be applied on connected links. They are called Chosen Prefixes (CPs) and MUST contain the following information:
-			<list style="hanging">
-				<t hangText="Prefix">The assigned prefix.</t>
-				<t hangText="Link ID">An interface identifier of the interface connected to the link on which the assignment is made.</t>
-				<t hangText="Authoritative bit">A boolean that tells whether the assignment comes from a network authority (DHCP PD, manual configuration, etc...).</t>
-				<t hangText="Assignment's Priority">A value between PRIORITY_MIN and PRIORITY_MAX, quantifying the assignment's priority.</t>
-				<t hangText="Advertised">Whether that assignment is being advertised by the flooding protocol <xref target="floodlap"/>.</t>
-				<t hangText="Applied">Whether that assignment is applied on link's configuration <xref target="prefapply"/>.</t>
+			<list style="hanging" hangIndent="6">
+				<t hangText="Prefix:">The assigned prefix.</t>
+				<t hangText="Link ID:">An interface identifier of the interface connected to the link on which the assignment is made.</t>
+				<t hangText="Authoritative bit:">A boolean that tells whether the assignment comes from a network authority (DHCP PD, manual configuration, etc...).</t>
+				<t hangText="Assignment's Priority:">A value between PRIORITY_MIN and PRIORITY_MAX, quantifying the assignment's priority.</t>
+				<t hangText="Advertised:">Whether that assignment is being advertised by the flooding protocol <xref target="floodlap"/>.</t>
+				<t hangText="Applied:">Whether that assignment is applied on link's configuration <xref target="prefapply"/>.</t>
 			</list>
+			<vspace />
 		</t>
 		
 		<t>Chosen Prefixes that are marked as 'Advertised' are sent to other routers through the flooding protocol, and are therefore considered as Assigned Prefixes by other routers. The Prefix Assignment Algorithm goal is to make sure that all routers, on each link, select the same set of Chosen Prefixes.</t>
@@ -301,13 +302,14 @@
 		
 		<t>The FP must provide a way to flood Delegated Prefixes and retrieve prefixes delegated to other routers. Retrieved entries must contain the following information.
 
-			<list style="hanging">
-				<t hangText="Prefix">The delegated prefix.</t>
-				<t hangText="Router ID">The router ID of the router that is advertising the delegated prefix.</t>
-				<t hangText="Valid until">A time value, in absolute local time, specifying the prefix validity time.</t>
-				<t hangText="Preferred until">A time value, in absolute local time, specifying the prefix preferred time.</t>
-				<t hangText="DHCP information">DHCPv6 encoded options attached to the delegated prefix.</t>
+			<list style="hanging" hangIndent="6">
+				<t hangText="Prefix:">The delegated prefix.</t>
+				<t hangText="Router ID:">The router ID of the router that is advertising the delegated prefix.</t>
+				<t hangText="Valid until:">A time value, in absolute local time, specifying the prefix validity time.</t>
+				<t hangText="Preferred until:">A time value, in absolute local time, specifying the prefix preferred time.</t>
+				<t hangText="DHCP information:">DHCPv6 encoded options attached to the delegated prefix.</t>
 			</list>
+			<vspace />
 		</t>
 		
 		<t>The FP MUST make sure time values are consistent throughout the network (i.e. differences are small compared to Delegated Prefixes lifetimes). If no time synchronization protocol is used, the FP MUST keep track of prefix age across the network and within its database.</t>
@@ -324,7 +326,7 @@
 
 <section anchor="pa" title="Prefix Assignment Algorithm">
 	
-	<t>The Prefix Assignment Algorithm is a distributed algorithm that assigns one prefix from each available Delegated Prefix on every link that is considered as internal by at least one connected router. The algorithm itself makes no difference whether the delegated prefix is global IPv6, ULA or IPv4. IPv4 prefixes are considered as written in their IPv6 form (i.e. ::ffff:A.B.C.D/X with X >= 96).</t>
+	<t>The Prefix Assignment Algorithm is a distributed algorithm that assigns one prefix from each available Delegated Prefix on every link that is considered as internal by at least one connected router. The algorithm itself makes no difference whether the delegated prefix is global IPv6, ULA or IPv4. IPv4 prefixes are written in their IPv4-mapped IPv6 form, as defined in <xref target="RFC4291"/> (i.e. ::ffff:A.B.C.D/X with X >= 96).</t>
 	
 	<t>When the Prefix Assignment Algorithm is executed, combinations of Delegated Prefixes and internal interfaces are being considered. If a delegated prefix contains another delegated prefix, it is ignored. Address assignments from disjoint delegated prefixes are completely independent. For the purpose of this discussion, the Aggregated Prefix will be referred to as the current Aggregated Prefix, and the interface will be referred to as the current Interface.</t>
 	
@@ -391,11 +393,11 @@
 	<section anchor="newassign" title="Making a New Assignment">
 		
 		<t>When the algorithm decides to make a new assignment, it first needs to specify the desired size of the assigned prefix. Although that choice is completely implementation specific, prefixes of size 64 are RECOMMENDED. The following table MAY be used as default values, where X is the length of the delegated prefix.
-			<list style="hanging">
-				<t hangText="If X &lt; 64">Prefix length = 64</t>
-				<t hangText="If X &gt;= 64 and X &lt; 104">Prefix length = X + 16 (up to 2^16 links)</t>
-				<t hangText="If X &gt;= 104 and X &lt; 112">Prefix length = 120 (2^8 addresses per link and more than 2^8 links)</t>
-				<t hangText="If X &gt;= 112 and X &lt;= 128">Prefix length = 120 + (X - 112)/2 (Link Vs Addresses tradeoff)</t>
+			<list style="hanging" hangIndent="6">
+				<t hangText="If X &lt; 64:">Prefix length = 64</t>
+				<t hangText="If X &gt;= 64 and X &lt; 104:">Prefix length = X + 16 (up to 2^16 links)</t>
+				<t hangText="If X &gt;= 104 and X &lt; 112:">Prefix length = 120 (2^8 addresses per link and more than 2^8 links)</t>
+				<t hangText="If X &gt;= 112 and X &lt;= 128:">Prefix length = 120 + (X - 112)/2 (Link Vs Addresses tradeoff)</t>
 			</list>
 		</t>
 		
@@ -497,11 +499,11 @@
 	
 	<section title="Router's address pools">
 		<t>Given an assigned prefix A/X (where all A's latest '128 - X'th bits are set to 0), the routers reserved address pool is defined as following:
-			<list style="hanging">
-				<t hangText="If X &lt; 64">SLAAC MUST be used</t>
-				<t hangText="If X &gt; 64 and X &lt;= 110">The pool is A/112 (2^16 addresses)</t>
-				<t hangText="If X &gt; 110 and X &lt;= 126">The pool is A/(X + 2) (One quarter of the available addresses)</t>
-				<t hangText="If X &gt; 126">Only the designated router CAN use A/128. Other routers MUST NOT get an address.</t>
+			<list style="hanging" hangIndent="6">
+				<t hangText="If X &lt; 64:">SLAAC MUST be used</t>
+				<t hangText="If X &gt; 64 and X &lt;= 110:">The pool is A/112 (2^16 addresses)</t>
+				<t hangText="If X &gt; 110 and X &lt;= 126:">The pool is A/(X + 2) (One quarter of the available addresses)</t>
+				<t hangText="If X &gt; 126:">Only the designated router CAN use A/128. Other routers MUST NOT get an address.</t>
 			</list>
 		</t>
 	</section>
@@ -641,6 +643,7 @@ PRIORITY_MAX              15
   <?rfc include="reference.RFC.3203.xml"?>
   <?rfc include="reference.RFC.3646.xml"?>
   <?rfc include="reference.RFC.4193.xml"?>
+  <?rfc include="reference.RFC.4291.xml"?>
   <?rfc include="reference.RFC.4861.xml"?>
   <?rfc include="reference.RFC.6106.xml"?>
   <?rfc include="reference.RFC.6603.xml"?>
