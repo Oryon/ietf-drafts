@@ -468,8 +468,8 @@
 				<t>There are four possibilities at this stage.
 					 <list style="numbers">
 						 <t>If no AP is found, and no CP is found, a new assignment MUST be made if and only if the router considers itself as the designated router. See <xref target="newassign"/>.</t>
-						 <t>If no AP is found, and a CP is found, the external assignment MUST be accepted. The new CP's advertised bit MUST be set if and only if the router considers itself as the designated router.</t>
-						 <t>If a AP is found, and no CP is found, the router MUST check if the CP's assignment is valid. If it is, the local assignment is marked as valid and advertised. If it isn't, it is destroyed and the algorithm applies case 1.</t>
+						 <t>If an AP is found, and no CP is found, the AP MUST be accepted. The new CP's advertised bit MUST be set if and only if the router considers itself as the designated router.</t>
+						 <t>If no AP is found, and a CP is found, the router MUST check if the CP's assignment is valid. If it is, the local assignment is marked as valid and advertised. If it isn't, it is destroyed and the algorithm applies case 1.</t>
 						 <t>If both an AP and a CP are found, the router must check if the prefixes are the same. If they are different and if the CP's Authoritative bit is not set, the CP MUST be deleted and the algorithm applies case 2. If the prefixes are the same, the CP must be updated with the AP's priority value, marked as valid, and advertised if and only if the router considers itself as designated on the link.</t>
 					 </list>
 				</t>
