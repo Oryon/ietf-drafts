@@ -126,7 +126,7 @@
 
 <section anchor="router" title="Router Behavior">
 	
-	<t>All home routers participating in the prefix assignment algorithm MUST fulfill the requirements defined in this document and use a common flooding protocol and routing protocol. Classic CPE routers (<xref target='RFC7084' />) are supported as uplink or downstream routers but problems may occur when such router is connected to the home network on both WAN and LAN side. In the later case, finer external interface detection algorithm or static configuration CAN be used to solve the issue.
+	<t>All home routers participating in the prefix assignment algorithm MUST fulfill the requirements defined in this document and use a common flooding protocol and routing protocol. Classic CPE routers (<xref target='RFC7084' />) are supported as uplink or downstream routers but problems may occur when such router is connected to the home network on both WAN and LAN side. In the later case, finer external interface detection algorithm or static configuration can be used to solve the issue, but these are out of the scope of this document.
 	</t>
 	
 	<section anchor="struct" title="Data structures">
@@ -138,7 +138,7 @@
 				<t hangText="Prefix:">The assigned prefix.</t>
 				<t hangText="Router ID:">The identifier of the advertising router.</t>
 				<t hangText="Link ID:">If the assignment is made on a connected link, an interface identifier of the interface connected to that link.</t>
-				<t hangText="Authoritative bit:">A boolean that tells whether the assignment comes from a network authority (DHCP PD, manual configuration, etc...).</t>
+				<t hangText="Authoritative bit:">A boolean that tells whether the assignment comes from a network authority (DHCPv6 PD, manual configuration, etc...).</t>
 				<t hangText="Assignment's Priority:">A value between PRIORITY_MIN and PRIORITY_MAX, quantifying the assignment's priority.</t>
 			</list>
 			The AP list is the result of the information provided by the flooding protocol, as specified in <xref target="floodlap"/>.</t>
@@ -147,7 +147,7 @@
 			<list style="hanging" hangIndent="6">
 				<t hangText="Prefix:">The assigned prefix.</t>
 				<t hangText="Link ID:">An interface identifier of the interface connected to the link on which the assignment is made.</t>
-				<t hangText="Authoritative bit:">A boolean that tells whether the assignment comes from a network authority (DHCP PD, manual configuration, etc...).</t>
+				<t hangText="Authoritative bit:">A boolean that tells whether the assignment comes from a network authority (DHCPv6 PD, manual configuration, etc...).</t>
 				<t hangText="Assignment's Priority:">A value between PRIORITY_MIN and PRIORITY_MAX, quantifying the assignment's priority.</t>
 				<t hangText="Advertised:">Whether that assignment is being advertised by the flooding protocol <xref target="floodlap"/>.</t>
 				<t hangText="Applied:">Whether that assignment is applied on link's configuration <xref target="prefapply"/>.</t>
@@ -218,14 +218,14 @@
 					</list>
 					<list style="empty">
 						<t>Note: That particular order (inverted compared to assignments' priority) is motivated by the few cases where a router may override an existing assignment by advertising an assignment of higher priority. In such a case, the designated router needs to remain the same.</t>
-                        <t>Example: A new router is powered on, connected to another router that was already there (doing DHCP). It sees the assigned prefix for their common link, but also has, in its own configuration, an authoritative assignment for the link.  It starts advertising the authoritative assignment, which causes the second router to remove its previous assignment. Thanks to the inverted order, the DHCP server will remain the same.</t>
+                        <t>Example: A new router is powered on and connected to another router that was already there (doing DHCP). It sees the assigned prefix for their common link, but also has, in its own configuration, an authoritative assignment for the link.  It starts advertising the authoritative assignment, which causes the second router to remove its previous assignment. Thanks to the inverted order, the DHCP server will remain the same.</t>
 					</list>
 				</t>
 			</list>
 		</t>
 	
 		<section anchor="sendras" title="Sending Router Advertisement">
-			<t>On a given link, the designated router MUST send router advertisements including Prefix Information Options for all the Chosen Prefixes associated to that link. SLAAC SHOULD be enabled when possible unless the configuration states otherwise. The valid and preferred lifetimes MUST be set to values lower or equal to the associated Delegated Prefix's valid and preferred lifetimes.</t>
+			<t>On a given link, the designated router MUST send router advertisements including Prefix Information Options for all the Chosen Prefixes associated to that link. SLAAC SHOULD be enabled when possible, unless the configuration states otherwise. The valid and preferred lifetimes MUST be set to values lower or equal to the associated Delegated Prefix's valid and preferred lifetimes.</t>
 		</section>
 		
 		<section anchor="dhcpserver" title="DHCP Server Operations">
@@ -266,7 +266,7 @@
 	
 		<t>DHCP options attached to each delegated prefixes and propagated through the flooding protocol SHOULD contain the DHCP DNS option provided by the ISP (when provided).</t>
 	
-		<t>Whenever the router knows which DNS server to use, or is acting as a DNS relay, it SHOULD include DNS DHCPv6 option (<xref target="RFC3646"/>) within host's configuration messages and include the Router Advertisement DNS options (<xref target="RFC6106"/>) when sending RAs.</t>
+		<t>Whenever the router knows which DNS server to use, or is acting as a DNS relay, it SHOULD include DNS DHCP option (<xref target="RFC3646"/>) within host's configuration messages and include the Router Advertisement DNS options (<xref target="RFC6106"/>) when sending RAs.</t>
 	
 		<t>DNS server selection in multi-homed networks is a complex issue that this document doesn't intend to solve. One should look at IETF's mif working-group documents in order to obtain guidelines concerning DNS server selection. It is RECOMMENDED that designated routers turns on a local DNS relay that fetches information from provided DNS servers.</t>
 
@@ -438,9 +438,9 @@
 			</list>
 		</t>
 		
-		<t>When a delegated prefix is obtained through DHCP PD with a non-empty excluded prefix, as specified in <xref target="RFC6603"/>, an Authoritative Prefix Assignment MUST be created with the excluded prefix.
+		<t>When a delegated prefix is obtained through DHCPv6 PD with a non-empty excluded prefix, as specified in <xref target="RFC6603"/>, an Authoritative Prefix Assignment MUST be created with the excluded prefix.
 			<list style="empty">
-				<t>Note: If the router doesn't know the excluded prefix DHCPv6 option, the delegated prefix is ignored, as specified in <xref target="obtprefix"/>.</t>
+				<t>Note: If the router doesn't understand the excluded prefix DHCPv6 option, the delegated prefix is ignored, as specified in <xref target="obtprefix"/>.</t>
 			</list>
 		</t>
 		
@@ -486,12 +486,12 @@
 		
 	</section>
     
-    <section title="Downstream DHCP PD support">
-        <t>If some host or non-Homenet router asks for Delegated Prefixes, a router MAY assign a set of prefixes and give them to the client. Such assignments MUST be advertised as either not assigned on any link, or assigned on a stub virtual link connected to the router, depending on the Flooding Protocol capabilities. By default assignments priorities MUST be between PRIORITY_AUTO_MIN and PRIORITY_AUTO_MAX, SHOULD be lower than PRIORITY_DEFAULT, and the authoritative bit MUST not be set. Whenever such an assignment becomes invalid, DHCPv6 Reconfigure SHOULD be used in order to remove the prefix from DHCP client's lease. If DHCPv6 Reconfigure is not supported, leases lifetimes SHOULD be significantly small.</t>
+    <section title="Downstream DHCPv6 Prefix Delegation support">
+        <t>If some host or non-Homenet router asks for Delegated Prefixes, a router MAY assign a set of prefixes and give them to the client. Such assignments MUST be advertised as either not assigned on any link, or assigned on a stub virtual link connected to the router, depending on the Flooding Protocol capabilities. By default assignments priorities MUST be between PRIORITY_AUTO_MIN and PRIORITY_AUTO_MAX, SHOULD be lower than PRIORITY_DEFAULT, and the authoritative bit MUST not be set. Whenever such an assignment becomes invalid, DHCPv6 Reconfigure SHOULD be used in order to remove the prefix from DHCPv6 DP client's lease. If DHCPv6 Reconfigure is not supported, leases lifetimes SHOULD be significantly small.</t>
         
-        <t>Provided DPs' valid and preferred lifetimes MUST be lower than their associated Delegated Prefix's lifetimes, and associated DHCP data SHOULD be provided to the DHCP PD client.</t>
+        <t>Provided DPs' valid and preferred lifetimes MUST be lower than their associated Delegated Prefix's lifetimes, and associated DHCPv6 data SHOULD be provided to the DHCPv6 PD client.</t>
         
-        <t>By default, an assigned prefix SHOULD NOT be provided to a DHCP PD client before the apply timeout has elapsed. But in order to allow faster response delay, a lease MAY first be provided with a lifetime of 2*FLOODING_DELAY seconds, even if the private assignments' apply timeout has not elapsed yet.</t>
+        <t>By default, an assigned prefix SHOULD NOT be provided to a DHCPv6 PD client before the apply timeout has elapsed. But in order to allow faster response delay, a lease MAY first be provided with a lifetime of 2*FLOODING_DELAY seconds, even if the private assignments' apply timeout has not elapsed yet.</t>
     </section>
 	
 </section>
@@ -610,7 +610,7 @@
 
 <section anchor="manag" title="Manageability Considerations">
 
-	<t>The algorithm leaves much roon for implementation specific features. For instance, ULA prefix as well IPv4 prefix generation may be disabled whenever a global IPv6 is made available. This section details a few other possible configuration options.</t>
+	<t>The algorithm leaves much room for implementation specific features. For instance, ULA prefix as well IPv4 prefix generation may be disabled whenever a global IPv6 is made available. This section details a few other possible configuration options.</t>
 	
 	<t>The implementation MAY allow each internal interface to be configured with a custom priority value. The specified priority SHOULD then be used when creating new assignments on the given interface. If not specified, the default priority SHOULD be used.</t>
 
