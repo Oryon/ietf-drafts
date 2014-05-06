@@ -276,7 +276,7 @@
 
 <section anchor="flood" title="Flooding Protocol Requirements">
 	
-	<t>In this document, the Flooding Protocol (FP) refers to a protocol enabling information propagation to the whole network. It was not specified in order to allow the working group to independently decide which routing protocol, configuration protocol, and prefix assignment method to use within the home network. Routing protocol, like OSPFv3 <xref target="RFC5340"/> or IS-IS <xref target="RFC5308"/>, could be extended in order to fulfill the requirements. An independent protocol, for instance HNCP <xref target="I-D.ietf-homenet-hncp"/>, could be used as well.</t>
+	<t>In this document, the Flooding Protocol (FP) refers to a protocol enabling information propagation to the whole network. It was not specified in order to allow the working group to independently decide which routing protocol, configuration protocol, and prefix assignment method to use within the home network. Routing protocol, like OSPFv3 <xref target="RFC5340"/> (With its autoconf extension <xref target="I-D.ietf-ospf-ospfv3-autoconfig"/>) or IS-IS <xref target="RFC5308"/>, could be extended in order to fulfill the requirements. An independent protocol, for instance HNCP <xref target="I-D.ietf-homenet-hncp"/>, could be used as well.</t>
 	
 	<t>The specified algorithm can use any protocol that fulfills the requirements specified in this section.</t>
 	
@@ -687,6 +687,7 @@ DP_KEEP_ALIVE_TIME        60 seconds
   <?rfc include="reference.RFC.7084.xml"?>
   <?rfc include="reference.I-D.ietf-homenet-arch.xml"?>
   <?rfc include="reference.I-D.ietf-homenet-hncp.xml"?>
+  <?rfc include="reference.I-D.ietf-ospf-ospfv3-autoconfig.xml"?>
   <?rfc include="reference.I-D.arkko-homenet-prefix-assignment.xml"?>
   <?rfc include="reference.I-D.bhandari-dhc-class-based-prefix.xml"?>
   <?rfc include="reference.I-D.chelius-router-autoconf.xml"?>
