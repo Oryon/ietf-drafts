@@ -21,7 +21,7 @@
 <city>Paris</city>
 <country>France</country>
 </postal> 		
-<email>pierre@darou.fr</email>
+<email>pierre.pfister@darou.fr</email>
 </address>
 </author>
 
@@ -49,7 +49,7 @@
 </address>
 </author>
 
-<date month="Feb" year="2014" />
+<date month="May" year="2014" />
 
 <keyword>IPv6</keyword>
 <keyword>Homenet</keyword>
