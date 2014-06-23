@@ -698,7 +698,7 @@ DP_KEEP_ALIVE_TIME        60 seconds
 
 <section anchor="scarcity" title="Scarcity Avoidance Mechanism">
 	
-    <t>Although an ISP should provide enough addresses, a good implementation must carefully manage the provided address space. First, when a new assignment is made, the prefix should be selected amongst a set of prefixes so that prefix waste is minimized. Then, a router may decide to execute procedures intended to avoid prefix scarcity. Different approaches are possible. This section intends to provide guidelines for such procedures. They are optional and are compatible with routers that only support basic requirements defined in this document.</t>
+    <t>Although an ISP should provide enough addresses, an implementation must carefully manage the provided address space. First, when a new assignment is made, the prefix should be selected amongst a set of prefixes so that prefix waste is minimized. Then, a router may decide to execute procedures intended to avoid prefix scarcity. Different approaches are possible. This section intends to provide guidelines for such procedures. They are optional and are compatible with routers that only support basic requirements defined in this document.</t>
 	
     <section title="Prefix Wasts Avoidance">
 		
@@ -706,7 +706,7 @@ DP_KEEP_ALIVE_TIME        60 seconds
         
         <t>For instance, given a delegated prefix 2001::/56 and an assigned prefix 2001::/64, the best prefix choice in order to reduce prefix space waste is 2001:0:0:1::/64. Other choices are then to be taken in 2001:0:0:2::/63, 2001:0:0:4::/62, 2001:0:0:8::/61, etc...</t>
         
-        <t>Creating a good prefix selection algorithm may be challenging as it needs to fullfill somehow contradictory requirements:
+        <t>Creating an efficient prefix selection algorithm may be challenging as it needs to fullfill somehow contradictory requirements:
             <list style="numbers">
                 <t>The prefix MUST be chosen amongst available prefixes, which implies that other routers may interfere with the process.</t>
                 <t>The prefix MUST be chosen randomly in a subset of available prefixes. When possible, the subset must be big enough to avoid collisions.</t>
@@ -715,7 +715,7 @@ DP_KEEP_ALIVE_TIME        60 seconds
             </list>
         </t>
         
-        <t>The following algorithm, implemented as part of 'hnetd', offers a satisfying tradeoff. Given a Delegated Prefix and the desired prefix length:
+        <t>The following algorithm offers a satisfying tradeoff. Given a Delegated Prefix and the desired prefix length:
             <list style="numbers">
                 <t>Compute the minimal subset of available prefixes included in the Delegated Prefix. In the example given previously, the minimal subset was {2001:0:0:1::/64, 2001:0:0:2::/63, ..., 2001:0:0:80::/57}.</t>
                 <t>Compute the set of prefixes of desired length so that:
@@ -726,12 +726,14 @@ DP_KEEP_ALIVE_TIME        60 seconds
                     </list>
                     If RANDOM_SUBSET_SIZE equals 10, the subset would be {2001:0:0:1::/64, 2 /64s in 2001:0:0:2::/63, 4 /64s in 2001:0:0:4::/62, the 3 first /64s in 2001:0:0:8::/61}.
                 </t>
-                <t>First try PSEUDO_RANDOM_TENTATIVE pseudo-random prefixes, computed from the DP, with the given length, based on interface specific hardware values. Such tentatives must, for a given DP and prefix length, always be the same. Choose the first prefix amongst this set that also is in the set computed at step 2. If no prefix is found, try next step.</t>
+                <t>First try PSEUDO_RANDOM_TENTATIVE pseudo-random prefixes, computed from the DP, with the given length, based on interface specific hardware values (For instance using values generated like HASH(MAC Address : Counter). The hash function doesn't need to be cryptographic). The first prefix amongst this set that also is in the set computed at step 2 is chosen. If no prefix is found, try next step.</t>
                 <t>Choose a prefix randomly among prefixes in the subset computed at step 2.</t>
             </list>
         </t>
         
-        <t>This algorithm, defined as a sequence of prefix sets, may seem computationaly complex, but it can be efficiently implemented. The key element in order to do so is the ability to iterate efficiently over all the available prefixes. It has been implemented in 'hnetd', where Assigned Prefixes are stored in optimized binary trees, with RANDOM_SUBSET_SIZE equaling 256 and PSEUDO_RANDOM_TENTATIVE equaling 10.</t>
+        <t>This algorithm, defined as a sequence of prefix sets computation, may seem algorithmicaly complex, but it can be efficiently implemented. The key element in order to do so is the ability to iterate efficiently over all the available prefixes.</t>
+        
+        <t>RANDOM_SUBSET_SIZE should provide sufficiently low collision probability. A value of 256 should be enough in most cases. PSEUDO_RANDOM_TENTATIVE is purely implementation dependent, but shouldn't be too high as the probability of finding an available prefix that way quickly dicreases with the number of used prefixes. A value of 10 should be satisfying.</t>
 		
 	</section>
     
