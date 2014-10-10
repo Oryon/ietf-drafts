@@ -181,11 +181,11 @@
 
 	<section anchor="obtprefix" title="Obtaining a Delegated Prefix">
 	
-		<t>A Delegated Prefix can be obtained or generated through different means:
+        <t>Delegated Prefixes (Of any kind: Global, ULA, IPv4...) can be obtained or generated through different means:
 
 			<list style="symbols">
-				<t>It can be dynamically delegated, for instance using DHCPv6 PD.</t>
-				<t>It can be created statically, specified in router's configuration.</t>
+				<t>It can be delegated by a service provider (DHCPv6 PD, 6rd <xref target="RFC5969"/>, etc..).</t>
+				<t>It can be provisioned by an administrative authority (user configuration, netconf <xref target="RFC6241"/>, etc... ).</t>
 				<t>A ULA prefix may be spontaneously generated as defined in <xref target="ulagen"/>.</t>
 				<t>An IPv4 private prefix may be spontaneously generated as defined in <xref target="v4gen"/>.</t>
 			</list>
@@ -406,9 +406,9 @@
 		
 	<section anchor="newassign" title="Making a New Assignment">
 		
-		<t>When the algorithm decides to make a new assignment, it first needs to specify the desired size of the assigned prefix. Although that choice is completely implementation specific, prefixes of size 64 are RECOMMENDED. The following table MAY be used as default values, where X is the length of the delegated prefix.
+		<t>When the algorithm decides to make a new assignment, it first needs to specify the desired size of the assigned prefix. Although this algorithm intends to remain generic, the use of 64 bits long prefixes is RECOMMENDED (See <xref target="I-D.ietf-6man-why64"/>). The following table MAY be used as default values, where X is the length of the delegated prefix.
 			<list style="hanging" hangIndent="6">
-				<t hangText="If X &lt; 64:">Prefix length = 64</t>
+				<t hangText="If X &le; 64:">Prefix length = 64</t>
 				<t hangText="If X &ge; 64 and X &lt; 104:">Prefix length = X + 16 (up to 2^16 links)</t>
 				<t hangText="If X &ge; 104 and X &lt; 112:">Prefix length = 120 (2^8 addresses per link and more than 2^8 links)</t>
 				<t hangText="If X &ge; 112 and X &le; 128:">Prefix length = 120 + (X - 112)/2 (Link Vs Addresses tradeoff)</t>
@@ -438,12 +438,12 @@
 	
 	<section title="Using Authoritative Prefix Assignments">
 		
-		<t>When some authority (Delegating router, system admin, etc...) wants to manually enforce some behavior, it may ask some router to make an Authoritative Prefix Assignment. Such assignments have their Authoritative bit set, CAN NOT be overridden, and will appear in other router's database as Assigned Prefixes with the Authoritative bit set.</t>
+		<t>When some authority (Delegating router, system admin, etc...) wants to manually enforce some behavior, it may ask some router to make an Authoritative Prefix Assignment. Such assignments have their Authoritative bit set, SHALL NOT be overridden, and will appear in other router's database as Assigned Prefixes with the Authoritative bit set.</t>
 		
 		<t>There are two kinds of Authoritative Prefix Assignments.
 			<list style="symbols">
-				<t>When an authority wants to assign some particular prefix to some interface, an Authoritative Prefix Assignment CAN be created and consists in a Chosen Prefix which have its Authoritative bit set and which is advertised. Just like normal assignments, it MUST NOT be applied before the delay specified in <xref target="hysteresis"/> elapsed.</t>
-				<t>When an authority wants to prevent some prefix from being used, an Authoritative Assignment CAN be advertised. Such assignments MUST NOT be applied and MUST be advertised through the flooding protocol as assigned to either no-interface, or a fake interface (Depending on the flooding protocol's capabilities).
+				<t>When an authority wants to assign some particular prefix to some interface, an Authoritative Prefix Assignment MAY be created and consists in a Chosen Prefix which have its Authoritative bit set and which is advertised. Just like normal assignments, it MUST NOT be applied before the delay specified in <xref target="hysteresis"/> elapsed.</t>
+				<t>When an authority wants to prevent some prefix from being used, an Authoritative Assignment MAY be advertised. Such assignments MUST NOT be applied and MUST be advertised through the flooding protocol as assigned to either no-interface, or a fake interface (Depending on the flooding protocol's capabilities).
 				</t>
 			</list>
 		</t>
@@ -517,7 +517,7 @@
 	</t>
 	
 	
-	<t>When possible, SLAAC MUST be used. In other cases a different mechanism is necessary for routers to get addresses. This document proposes an Address Assignment Algorithm that extends the Prefix Assignment Algorithm and works as follows. Each prefix assignment is associated with a fixed address pool, reserved for router's addresses assignment. The address pool is a prefix which value is deterministically function of the assigned prefix. A router CAN, at any time, decide to assign itself an address from any of its Chosen Prefixes. Just like prefix assignments, address assignments are advertised to other routers and collisions are detected. Routers MUST keep track of Address Assignments made by other routers on connected links by using information provided by the flooding algorithm, as defined in <xref target="floodlaa"/>.</t>
+	<t>When possible, SLAAC MUST be used. In other cases a different mechanism is necessary for routers to get addresses. This document proposes an Address Assignment Algorithm that extends the Prefix Assignment Algorithm and works as follows. Each prefix assignment is associated with a fixed address pool, reserved for router's addresses assignment. The address pool is a prefix which value is deterministically function of the assigned prefix. A router MAY, at any time, decide to assign itself an address from any of its Chosen Prefixes. Just like prefix assignments, address assignments are advertised to other routers and collisions are detected. Routers MUST keep track of Address Assignments made by other routers on connected links by using information provided by the flooding algorithm, as defined in <xref target="floodlaa"/>.</t>
 	
 	<section title="Router's address pools">
 		<t>Given an assigned prefix A/X (where all A's latest '128 - X'th bits are set to 0), the routers reserved address pool is defined as follows:
@@ -525,7 +525,7 @@
 				<t hangText="If X &le; 64:">SLAAC MUST be used</t>
 				<t hangText="If X &gt; 64 and X &le; 110:">The pool is A/112 (2^16 addresses)</t>
 				<t hangText="If X &ge; 110 and X &le; 126:">The pool is A/(X + 2) (One quarter of the available addresses)</t>
-				<t hangText="If X &ge; 126:">Only the designated router CAN use A/128. Other routers MUST NOT get an address.</t>
+				<t hangText="If X &ge; 126:">Only the designated router MAY use A/128. Other routers MUST NOT get an address.</t>
 			</list>
 		</t>
         <t>In the case of IPv4 prefixes, the network address (first address of the address pool) MUST not be used.</t>
@@ -588,16 +588,24 @@
 	
 	<section anchor="ulagen" title="ULA Prefix Generation">
 	
-		<t>A router MAY generate a ULA prefix when the two following conditions are met.
-			<list style="symbols">
-				<t>It is the Network Leader (<xref target="netlead"/>).</t>
-				<t>No other ULA delegated prefix is advertised by any other router.</t>
-			</list>
-		</t>
+        <t>A router MAY spontaneously generate a ULA delegated prefix whenever the two following conditions are met.
+            <list style="symbols">
+                <t>No other ULA delegated prefix is being advertised network-wide.</t>
+                <t>The ULA Backoff Timer is not running.</t>
+            </list>
+        </t>
 	
 		<t>A router MUST stop advertising a spontaneously generated ULA prefix whenever another router is advertising a ULA delegated prefix.</t>
+        
+        <t>At startup, the ULA Backoff Timer is set to a random value between 0 and ULA_DELAY_FACTOR * FLOODING_DELAY. Whenever some other router starts advertising a ULA prefix, all routers except the Network Leader (<xref target="netlead"/>) increase their Backoff Timer to a random value between 0 and ULA_DELAY_FACTOR * FLOODING_DELAY.</t>
+        
+        <t>ULA_DELAY_FACTOR initial value is 2 and is doubled each time the router has to withdraw its own spontaneously generated ULA prefix due to a collision. The ULA_DELAY_FACTOR is reset to 2 if at least one ULA delegated prefix is advertised network-wide and no new ULA delegated prefix is advertised, for a lapse of time of 4 * FLOODING_DELAY.</t>
 
-		<t>The most recently used ULA prefix SHOULD be stored in stable storage by all routers and reused whenever choosing a new ULA delegated prefix. If no ULA prefix can be found in stable storage, it MUST be randomly generated, or generated from hardware specific values.</t>
+        <t>The most recently used ULA prefix SHOULD be stored in stable storage and reused whenever generating a ULA delegated prefix. If no ULA prefix can be found in the stable storage, it MUST be randomly generated.</t>
+
+        <t>ULA prefix generation SHOULD conform to <xref target="RFC4193"/>. Nevertheless, if the stable storage can't be used or the current date cannot be determined, the prefix MAY be pseudo-randomly generated based on hardware specific values.</t>
+        
+        <t>Note as well that this section doesn't prevent multiple ULA prefixes from existing simultaneously. ULA prefixes may be provided by different means, as specified in <xref target="obtprefix"/>. Delegated prefixes that are delegated by a service provider or provisioned by an authority differ from 'spontaneously' generated prefixes. They MUST NOT be withdrawn if another ULA delegated prefix is observed.</t>
 	
 	</section>
 	
@@ -696,10 +704,13 @@ DP_KEEP_ALIVE_TIME        60 seconds
   <?rfc include="reference.RFC.4302.xml"?>
   <?rfc include="reference.RFC.5308.xml"?>
   <?rfc include="reference.RFC.5340.xml"?>
+  <?rfc include="reference.RFC.5969.xml"?>
+  <?rfc include="reference.RFC.6241.xml"?>
   <?rfc include="reference.RFC.7084.xml"?>
   <?rfc include="reference.I-D.ietf-homenet-arch.xml"?>
   <?rfc include="reference.I-D.ietf-homenet-hncp.xml"?>
   <?rfc include="reference.I-D.ietf-ospf-ospfv3-autoconfig.xml"?>
+  <?rfc include="reference.I-D.ietf-6man-why64.xml"?>
   <?rfc include="reference.I-D.arkko-homenet-prefix-assignment.xml"?>
   <?rfc include="reference.I-D.bhandari-dhc-class-based-prefix.xml"?>
   <?rfc include="reference.I-D.chelius-router-autoconf.xml"?>
