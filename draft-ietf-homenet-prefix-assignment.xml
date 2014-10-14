@@ -232,8 +232,9 @@
 		</t>
 	
 		<section anchor="sendras" title="Sending Router Advertisement">
-			<t>On a given link, the designated router MUST send router advertisements including Prefix Information Options for all the Chosen Prefixes associated to that link. SLAAC SHOULD be enabled when possible, unless the configuration states otherwise. The valid and preferred lifetimes MUST be set to values lower or equal to the associated Delegated Prefix's valid and preferred lifetimes.</t>
-            <!-- Maybe add something about RIOs ? -->
+			<t>On a given link, the designated router MUST send router advertisements (RAs) including Prefix Information Options for all the Chosen Prefixes associated to that link. SLAAC SHOULD be enabled when possible, unless the configuration states otherwise. Prefixes valid and preferred lifetimes MUST be set to values lower or equal to the associated Delegated Prefix's valid and preferred lifetimes.</t>
+            <t>Whenever an IPv6 default route is present in the RIB, the designated router MUST advertise itself as default router by specifying a strictly positive valid lifetime. Whenever the last default route is removed, the designated router MUST send an RA with the valid and preferred lifetimes set to zero.</t>
+            <t>The designated router MUST advertise itself as a router for all IPv6 delegated prefixes using Route Information Options <xref target="RFC4191"/>, independently of whether there is a default route or not.</t>
 		</section>
 		
 		<section anchor="dhcpserver" title="DHCP Server Operations">
@@ -693,6 +694,7 @@ DP_KEEP_ALIVE_TIME        60 seconds
   <?rfc include="reference.RFC.3315.xml"?>
   <?rfc include="reference.RFC.3633.xml"?>
   <?rfc include="reference.RFC.3646.xml"?>
+  <?rfc include="reference.RFC.4191.xml"?>
   <?rfc include="reference.RFC.4193.xml"?>
   <?rfc include="reference.RFC.4291.xml"?>
   <?rfc include="reference.RFC.4861.xml"?>
