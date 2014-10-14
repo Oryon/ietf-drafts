@@ -594,7 +594,9 @@
                 <t>The ULA Backoff Timer is not running.</t>
             </list>
         </t>
-	
+        
+         <t>If no IPv6 delegated prefix is available at all, the Network Leader SHOULD advertise a ULA prefix as soon as possible. Similarly, when an IPv6 prefix is available but a router can't assign at least one IPv6 prefix to one of its interface (e.g. all IPv6 prefixes are too small), it SHOULD generate a ULA prefix as soon as the two above conditions are met. These two cases ensure in-home IPv6 connectivity, unless stated otherwise in routers' configuration.</t>
+    
 		<t>A router MUST stop advertising a spontaneously generated ULA prefix whenever another router is advertising a ULA delegated prefix.</t>
         
         <t>At startup, the ULA Backoff Timer is set to a random value between 0 and ULA_DELAY_FACTOR * FLOODING_DELAY. Whenever some other router starts advertising a ULA prefix, all routers except the Network Leader (<xref target="netlead"/>) increase their Backoff Timer to a random value between 0 and ULA_DELAY_FACTOR * FLOODING_DELAY.</t>
