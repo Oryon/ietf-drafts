@@ -589,27 +589,56 @@
 	
 	<section anchor="ulagen" title="ULA Prefix Generation">
 	
-        <t>A router MAY spontaneously generate a ULA delegated prefix whenever the two following conditions are met.
-            <list style="symbols">
-                <t>No other ULA delegated prefix is being advertised network-wide.</t>
-                <t>The ULA Backoff Timer is not running.</t>
-            </list>
-        </t>
+        <t>ULA prefixes can be randomly generated as specified in <xref target="RFC4193"/>, enabling stable in-home IPv6 connectivity.</t>
         
-         <t>If no IPv6 delegated prefix is available at all, the Network Leader SHOULD advertise a ULA prefix as soon as possible. Similarly, when an IPv6 prefix is available but a router can't assign at least one IPv6 prefix to one of its interface (e.g. all IPv6 prefixes are too small), it SHOULD generate a ULA prefix as soon as the two above conditions are met. These two cases ensure in-home IPv6 connectivity, unless stated otherwise in routers' configuration.</t>
-    
-		<t>A router MUST stop advertising a spontaneously generated ULA prefix whenever another router is advertising a ULA delegated prefix.</t>
-        
-        <t>At startup, the ULA Backoff Timer is set to a random value between 0 and ULA_DELAY_FACTOR * FLOODING_DELAY. Whenever some other router starts advertising a ULA prefix, all routers except the Network Leader (<xref target="netlead"/>) increase their Backoff Timer to a random value between 0 and ULA_DELAY_FACTOR * FLOODING_DELAY.</t>
-        
-        <t>ULA_DELAY_FACTOR initial value is 2 and is doubled each time the router has to withdraw its own spontaneously generated ULA prefix due to a collision. The ULA_DELAY_FACTOR is reset to 2 if at least one ULA delegated prefix is advertised network-wide and no new ULA delegated prefix is advertised, for a lapse of time of 4 * FLOODING_DELAY.</t>
+        <t>In this section, we say a ULA delegated prefix is 'stable' if it has been the only advertised ULA delegated prefix for at least 2*FLOODING_DELAY seconds. The behaviour specified in the following sections tend to reuse a stable ULA prefix as long as its preferred lifetime is not null.</t>
 
-        <t>The most recently used ULA prefix SHOULD be stored in stable storage and reused whenever generating a ULA delegated prefix. If no ULA prefix can be found in the stable storage, it MUST be randomly generated.</t>
+        <t>Additionaly, we say a router is the owner of a spontaneously generated ULA prefix if it randomly created the prefix in the first place. A router SHOULD NOT create more than one prefix this way, and MUST remember all the prefixes they own. As stated in the following sections, only the owner of a prefix can extend its lifetimes.</t>
 
-        <t>ULA prefix generation SHOULD conform to <xref target="RFC4193"/>. Nevertheless, if the stable storage can't be used or the current date cannot be determined, the prefix MAY be pseudo-randomly generated based on hardware specific values.</t>
-        
-        <t>Note as well that this section doesn't prevent multiple ULA prefixes from existing simultaneously. ULA prefixes may be provided by different means, as specified in <xref target="obtprefix"/>. Delegated prefixes that are delegated by a service provider or provisioned by an authority differ from 'spontaneously' generated prefixes. They MUST NOT be withdrawn if another ULA delegated prefix is observed.</t>
-	
+            <section title="Choosing the ULA prefix">
+                <t>When a stable ULA prefix is advertised, all routers SHOULD remember that prefix alongwith its associated valid and preferred lifetime. If this prefix stops being advertised (e.g. due to a network split) while its preferred lifetime is not null, the same ULA prefix SHOULD be selected using the same valid and preferred lifetimes.</t>
+                
+                <t>If there was no stable ULA prefix advertised, or if the preferred lifetime of the prefix was null, a prefix generated as specified in <xref target="RFC4193"/> SHOULD be used. In case the stable storage can't be used or the current date cannot be determined, the prefix MAY be pseudo-randomly generated based on hardware specific values.</t>
+            </section>
+
+            <section title="Advertising a ULA prefix">
+                
+                <t>A router MAY start advertising a ULA prefix whenever the two following conditions are met:
+                    <list style="symbols">
+                        <t>It is the network leader.</t>
+                        <t>There is no other advertised ULA prefix.</t>
+                    </list>
+                    If no IPv6 prefix is available at all, the network leader SHOULD start advertising a ULA delegated prefix.
+                </t>
+
+                <t>Additionaly, a router SHOULD start advertising its own ULA prefix whenever the three following conditions are met:
+                    <list style="symbols">
+                        <t>A stable ULA prefix is advertised by another router.</t>
+                        <t>The router owns the advertised stable ULA prefix.</t>
+                        <t>The preferred lifetime of the advertised ULA prefix is below 10 minutes.</t>
+                    </list>
+                    This allows a router to restart advertising a owned prefix whenever the preferred lifetime is approaching zero. Which later allows him to extend the lifetime of the prefix.
+                </t>
+
+                <t>A router MUST stop advertising a spontaenously generated ULA prefix whenever one of the two following condition is met:
+                    <list style="symbols">
+                        <t>A different ULA prefix is being advertised.</t>
+                        <t>The same prefix is advertised by another router, and the router doesn't own that prefix.</t>
+                    </list>
+                </t>
+
+            </section>
+
+            <section title="Extending prefix lifetime">
+                <t>Routers MUST regularly extend the valid and preferred lifetimes of the ULA delegated prefix they advertise and own, so that they never drop to zero.</t>
+                <t>When a router advertises a prefix it doesn't own, lifetimes are never extended. When the preferred lifetime of the prefix approaches zero, either the owner of the prefix will start advertising the prefix with a non-zero preferred lifetime, or a new prefix will be generated.</t>
+            </section>
+
+            <section title="Authoritative ULAs">
+                <t>This section doesn't prevent multiple ULA prefixes from existing simultaneously. ULA prefixes may be provided by different means, as specified in <xref target="obtprefix"/>. Delegated prefixes that are delegated by a service provider or provisioned by an authority differ from 'spontaneously' generated prefixes. They MUST NOT be withdrawn if another ULA delegated prefix is observed.</t>
+                <t>When at least one of such ULA prefixes is used, spontaneously generated ULA prefixes are withdrawned.</t>
+            </section>
+
 	</section>
 	
 	<section anchor="v4gen" title="IPv4 Private Prefix Generation">
