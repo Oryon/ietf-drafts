@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+
+<rfc
+    category="info"
+    ipr="trust200902"
+    docName="draft-pfister-pim-ssbidir-00"
+    >
+
+<?rfc toc="yes"?> <?rfc symrefs="yes"?> <?rfc autobreaks="yes"?>
+<?rfc tocindent="yes"?> <?rfc compact="yes"?> <?rfc subcompact="no"?>
+
+<front>
+
+<title abbrev="PIM Source-Specific BIDIR">Source Specific support for Bidirectional Protocol Independent Multicast</title>
+
+<author initials="P" surname="Pfister" fullname="Pierre Pfister">
+<organization>Cisco Systems</organization>
+<address>
+<postal>
+<street/>
+<city>Paris</city>
+<country>France</country>
+</postal> 		
+<email>pierre@darou.fr</email>
+</address>
+</author>
+
+<date month="October" year="2014" />
+
+<keyword>PIM</keyword>
+<keyword>Multicast</keyword>
+<keyword>Proxy</keyword>
+
+<abstract>
+
+<t>This document adds Source-Specific capabilities to the Bidirectional Protocol Independent Multicast (PIM-BIDIR) routing protocol. Similarly to PIM-BIDIR, multicast traffic is always forwarded to the RP Link, but packets are also filtered based on their source address and source-specific subscription state. This operation mode is backwards compatible with PIM-BIDIR, provides a simpler alternative to PIM-SM and does not suffer when the multicast source location cannot be precisly determined.</t>
+</abstract>
+
+</front>
+
+<middle>
+
+<section title="Introduction">
+    <t>The Protocol Independent Multicast (PIM - <xref target="RFC4601"/>) Sparse-Mode provides All-Source (ASM) and Source-Specific multicast (SSM) routing using an optimal source-specific routing path, but at the cost of two major drawbacks.
+        <list style="numbers">
+            <t>It relies on packet tunneling for All-Source Multicast (Pretty complex in terms of implementation).</t>
+            <t>It does not provide native multicast when some multicast source's location cannot be determined precisly (e.g. when multiple default routes are in the RIB).</t>
+        </list>
+    </t>
+    
+    <t>PIM BIDIR was specified as an alternative to PIM-SM: Simpler in terms of implementation and execution, at the cost of dropping source-specific multicast support. It is particularly suited in situations where multiple multicast sources also subscribe to other sources' sent packets. This document specifies the Source-Specific Bidirectional Mode (PIM-SSBIDIR), which adds source-specificity support to PIM-BIDIR. Unlike PIM-SM, all the traffic, including the source specific traffic, is forwarded on the RP-tree. Therefore, PIM-SSBIDIR does not provide source-specific path optimization, but still filters traffic according to multicast packet's source address, and thus reduces undesired traffic forwarding.</t>
+    
+    <t>PIM-SSBIDIR, specified in this document, has two major advantages compared to PIM-SM.
+        <list style="numbers">
+            <t>Implementation and execution is simpler.
+                <list style="symbols">
+                    <t>A single RP-rooted forwarding tree is used.</t>
+                    <t>Assert state machine and messages are not used.</t>
+                    <t>Register and Register-Stop messages are not used (No tunneling).</t>
+                </list>
+            </t>
+            <t>Packets are forwarded nativly even when the source's location can't be determined.</t>
+        </list>
+    </t>
+    
+    <t>This extension was designed for multi-homed home networks (<xref target="I-D.ietf-homenet-arch"/> - a typical case in which source-location cannot be determined for ISP-orgininated traffic because of the multiple default routes). PIM-SM using PIM RPF Vectors <xref target="RFC5496"/> could be another alternative, but it is not clear how routers should behave when they receive conflicting RPF vectors. The protocol simplicity was also an important consideration as home routers usualy have little resources and software reliability is utterly important.</t>
+</section>
+
+
+<section title="Protocol Overview">
+    <t>PIM-BIDIR specifies how a single RP-rooted tree can be maintained and used for forwarding multicast traffic to group subscribers. In the original document, only the (*,G) state machine was defined. This document specifies (S,G) and (S,G,rpt) state machines when operating in BIDIR mode.</t>
+    
+    <t>Similarly to PIM-SM, (S,G) Join/Prune messages allow subscribing to multicast traffic originated by a given source for a given group while (S,G,rpt) Join/Prune messages provide support for source-specific pruning. But unlike PIM-SM, SSBIDIR Join/Prune messages are always sent to the Designated Forwarder, and downstream multicast packets are always forwarded from the RP link to the subscribed hosts. Consequently, one major difference with PIM-SM is that (*,G) and (S,G,rpt) upstream states do not operate concurrently. A router's either operates in "include" mode using (S,G) states, or in "exclude" mode using (*,G) and (S,G,rpt) states.</t>
+    
+    <t>Depending on the RP and sources locations, PIM-SSBIDIR does not always provide optimal routing of source-specific traffic. PIM-SM or PIM-SSM should be used in situations where source-specific path optimization is required.</t>
+    
+    <t>PIM-SSBIDIR can operate with PIM-BIDIR neighbors. Neighbor's capabilities are determined using the new Source-Specific Bidirectional Capable PIM Hello option which is included in all Hello messages sent by SSBIDIR routers. When at least one neighbor, on a given link, does not support PIM-SSBIDIR, (S,G,rpt) states are not used, but (S,G) state can be. Additionaly, when the Designated Forwarder does not support PIM-SSBIDIR, (S,G) downstream states are converted into (*,G) subscriptions. In any case, requested multicast traffic is always forwarded to the subscribed hosts. Although BIDIR-only router presence may increase undesired traffic overhead.</t>
+
+</section>
+
+<section title="Protocol Specifications">
+    <t>The specification of PIM-SSBIDIR is broken into several parts:
+        <list style="symbols">
+            <t><xref target="states"/> details the protocol state.</t>
+            <t><xref target="election"/> recalls that the Designated Forwarder election must take place.</t>
+            <t><xref target="forward"/> specifies the multicast data forwarding rules.</t>
+            <t><xref target="message"/> specifies the PIM-SSBIDIR Join/Prune generation and processing rules.</t>
+        </list>
+    </t>
+    
+    
+    <section anchor="states" title="PIM-SSBIDIR Protocol State">
+        <t>This section describes the state that must be kept by routers operating in PIM-SSBIDIR mode, in addition to the state specified in PIM-BIDIR specifications.</t>
+        
+        <section title="Per Neighbor State">
+            <t>Routers MUST keep track of neighbor's SSBIDIR and BIDIR capabilities as specified in PIM Hello BIDIR and SSBIDIR capable options (<xref target="ssbidir-option"/>).</t>
+            <t>This state is used by "ssbidir_neighbor(N)" macro defined in section <xref target="macros"/>.</t>
+        </section>
+        
+        <section title="(*,G) State">
+            <t>The (*,G) state is similar to the (*,G) state described in PIM-BIDIR's specifications.</t>
+        </section>
+        
+        <section title="(S,G) State">
+            <t>For every source S and group G operating in SSBIDIR mode, routers keep the following state:
+                <list style="hanging">
+                    <t hangText="(S,G) state:">
+                        <list style="hanging">
+                            
+                            <t hangText="For each interface:">
+                                <list style="hanging">
+                                    <t hangText="Local Membership:">
+                                        <list style="symbols">
+                                            <t>State: One of {"NoInfo", "Include"}</t>
+                                        </list>
+                                    </t>
+                                    <t hangText="PIM (S,G) Join/Prune:">
+                                        <list style="symbols">
+                                            <t>State: One of {"NoInfo", "Join", "Prune-Pending"}</t>
+                                            <t>Prune-Pending Timer</t>
+                                            <t>Join/Prune Expiry Timer</t>
+                                        </list>
+                                    </t>
+                                </list>
+                            </t>
+                            
+                            <t hangText="Not interface specific:">
+                                <list style="hanging">
+                                    <t hangText="Upstream (S,G) Join/Prune State:">
+                                        <list style="symbols">
+                                            <t>State: One of {"NotJoined", "Joined"}</t>
+                                            <t>Upstream (S,G) Join/Prune Timer</t>
+                                        </list>
+                                    </t>
+                                </list>
+                            </t>
+                            
+                        </list>
+                    </t>
+                </list>
+            </t>
+            
+            <t>Local membership is the result of the local membership mechanism (such as MLD <xref target="RFC3810"/> or IGMP <xref target="RFC3376"/>) running on that interface. This information is used by pim_include(S,G) macro described in <xref target="macros"/>.</t>
+            
+            <t>PIM (S,G) Join/Prune state is the result of receiving PIM (S,G) Join/Prune messages on this interface, and is specified in <xref target="dSG"/>.</t>
+            
+            <t>The upstream (S,G) Join/Prune State reflects the state of the upstream (S,G) state machine and the upstream (S,G) Join/Prune Timer is used to send periodic (S,G) Joins and override Prune(S,G) messages from peers on an upstream interface. Details are specified in <xref target="uSG"/>.</t>
+        </section>
+        
+        <section title="(S,G,rpt) State">
+            <t>For every group G and source S operating in SSBIDIR mode, routers keep the following state:
+                <list style="hanging">
+                    <t hangText="(S,G,rpt) state:">
+                        <list style="hanging">
+                            
+                            <t hangText="For each interface:">
+                                <list style="hanging">
+                                    <t hangText="Local Membership:">
+                                        <list style="symbols">
+                                            <t>State: One of {"NoInfo", "Exclude"}</t>
+                                        </list>
+                                    </t>
+                                    <t hangText="PIM (S,G,rpt) Join/Prune:">
+                                        <list style="symbols">
+                                            <t>State: One of {"NoInfo", "Prune", "Prune-Pending", "PruneTmp", "Prune-Pending-Tmp"}</t>
+                                            <t>Prune-Pending Timer</t>
+                                            <t>Join/Prune Expiry Timer</t>
+                                        </list>
+                                    </t>
+                                </list>
+                            </t>
+                            
+                            <t hangText="Not interface specific:">
+                                <list style="hanging">
+                                    <t hangText="Upstream (S,G,rpt) Join/Prune State:">
+                                        <list style="symbols">
+                                            <t>State: One of {"NotPruned", "Pruned"}</t>
+                                            <t>Upstream (S,G) Override Timer</t>
+                                        </list>
+                                    </t>
+                                </list>
+                            </t>
+                            
+                        </list>
+                    </t>
+                </list>
+            </t>
+            
+            <t>Local membership is the result of the local membership mechanism (such as MLD or IGMP) running on that interface. This information is used by pim_include(S,G) macro described in <xref target="macros"/>.</t>
+            
+            <t>PIM (S,G,rpt) Join/Prune state is the result of receiving PIM (S,G,rpt) Join/Prune messages on this interface, and is specified in <xref target="dSGr"/>.</t>
+            
+            <t>The upstream (S,G,rpt) Join/Prune State reflects the state of the upstream (S,G,rpt) state machine and the upstream (S,G,rpt) Join/Prune Timer is used to send periodic (S,G,rpt) Prunes and override Prune(S,G,rpt) messages from peers on the upstream interface. The upstream state machine's behavior is specified in <xref target="uSGr"/>.</t>
+        </section>
+        
+        <section anchor="election" title="Designated Forwarder Election">
+            <t>PIM-SSBIDIR routers MUST comply to the Designated Forwarder (DF) election process, as defined in PIM-BIDIR specifications.</t>
+        </section>
+        
+        <section anchor="macros" title="State Summerization Macro">
+            <t>This section describes the macros used by PIM-SSBIDIR state machines.</t>
+            
+            <t>RPA(G), RPF_interface(rpa) and RPF_neighbor(rpa) are related to the Designated Forwarder election. They are defined in PIM-BIDIR's specifications.</t>
+            
+            <figure suppress-title="true">
+                <preamble>The following pseudo code describes the set of interfaces requesting (S,G) traffic.</preamble><artwork>
+olist(S,G) =
+    RPF_interface(RPA(G))
+    (+) joins(S,G)
+    (+) (joins(*,G) (-) prunes(S,G,rpt))
+    (+) pim_include(S,G)
+    (+) (pim_include(*,G) - pim_exclude(S,G))
+                </artwork><postamble></postamble></figure>
+
+            <figure suppress-title="true">
+                <preamble>The set "joins(*,G)" is the set of interfaces on which the router has received (*,G) Joins:</preamble><artwork>
+joins(*,G) =
+    { all interfaces I such that
+      I_am_DF(RPA(G),I) AND
+      DownstreamJPState(*,G,I) is either Join or Prune-Pending }
+                </artwork><postamble></postamble></figure>
+            
+            
+            <figure suppress-title="true">
+                <preamble>The set "joins(S,G)" is the set of interfaces on which the router has received (S,G) Joins:</preamble><artwork>
+joins(S,G) =
+    { all interfaces I such that
+      I_am_DF(RPA(G),I) AND
+      DownstreamJPState(S,G,I) is either Join or Prune-Pending }
+                </artwork><postamble></postamble></figure>
+            
+            <figure suppress-title="true">
+                <preamble>The set "prunes(S,G,rpt)" is the set of interfaces on which the router has received (S,G,rpt) prunes:</preamble><artwork>
+prunes(S,G,rpt) =
+    { all interfaces I such that
+      I_am_DF(RPA(G),I) AND
+      DownstreamJPState(S,G,rpt,I) is either Prune or PruneTmp }
+                </artwork><postamble></postamble></figure>
+            
+            <figure suppress-title="true">
+                <preamble>The sets "pim_include(S,G)" and "pim_include(*,G)" indicate interfaces to which multicast traffic might be forwarded because of hosts that are local members on that interface. The set "pim_exclude(S,G)" is the set of interfaces where local members required to not receive traffic from source S:</preamble><artwork>
+pim_include(*,G) =
+    { all interfaces I such that
+      I_am_DF(RPA(G),I) AND
+      local_receiver_include(*,G,I) }
+      
+pim_include(S,G) =
+    { all interfaces I such that
+      I_am_DF(RPA(G),I) AND
+      local_receiver_include(S,G,I) }
+      
+pim_exclude(S,G) =
+    { all interfaces I such that
+      I_am_DF(RPA(G),I) AND
+      local_receiver_exclude(S,G,I) }
+                </artwork><postamble></postamble></figure>
+            
+            <t>Clauses "local_receiver_include(*,G,I)", "local_receiver_include(S,G,I)" and "local_receiver_exclude(S,G,I)" reflect local membership subscriptions, as defined in PIM-SM specifications.</t>
+            
+            <t>In order to operate with BIDIR routers, SSBIDIR routers keep track of neighbors' capabilities. The clause "ssbidir_neighbor(N)" is TRUE if the last received Hello from neighbor N contained a Source-Specific Bidirectional Capable Hello Option. It is FALSE otherwise. In addition, the "ssbidir_link(I)" is TRUE if "ssbidir_neighbor(N)" is TRUE for any neighbor reachable through the interface I. It is FALSE otherwise. These clauses are used in JoinDesired(G), JoinDesired(S,G) and PruneDesired(S,G,rpt) macro specified in <xref target="message"/>.</t>
+        
+    </section>
+        </section>
+    
+    <section anchor="forward" title="Forwarding Rules">
+        <t>Similarly to PIM-BIDIR, forwarding takes place on the RP-tree, defined as the set of uplink interfaces RPF_interface(RPA(G)) and interfaces where the router is elected Designated Forwarder.</t>
+        
+        <t>The process of accepting a packet for forwarding, before building the outgoing interface list, is similar to PIM-BIDIR's as well.</t>
+        
+        <t>In PIM-SSBIDIR, both group and source addresses are used in order to build the outgoing interface list, based on router's source-specific state. This differs from PIM-BIDIR, where only the group address is used.</t>
+        
+        <t>A packet received on an interface for which we are the Designated Forwarder is always relayed upstream.</t>
+        
+        <t>A packet received on the upstream interface, or on an interface on which we are the DF, is forwarded on all interfaces that requested the corresponding multicast traffic (Except the input interface).</t>
+        
+        <figure suppress-title="true">
+            <preamble>In summary, on receipt of data from S to G on interface iif:</preamble><artwork>
+if( iif == RPA_interface(RPA(G)) || I_am_DF(RPA(G), iif) ) {
+    oiflist = olist(S,G) (-) iif
+    forward packet on all interfaces in oiflist
+}
+            </artwork><postamble></postamble>
+        </figure>
+        
+    </section>
+    
+    <section anchor="message" title="PIM Join/Prune Messages">
+        <t>PIM SSBIDIR adds source-specific states and messaging to the existing PIM-BIDIR specifications. Therefore, this document only specifies (S,G) and (S,G,rpt) state machines and do not modify the existing BIDIR (*,G) state machine.</t>
+        
+        <section anchor="dG" title="Receiving (*,G) Join/Prune Messages">
+            <t>The per-interface (*,G) state machine is similar to the state machine described in PIM-BIDIR.</t>
+        </section>
+        
+        <section anchor="dSG" title="Receiving (S,G) Join/Prune Messages">
+            <t>When a router receives a Join(S,G) or Prune(S,G) for which SSBIDIR is enabled, it MUST first check if the group's [B]idir flag is set. If not, the packet MUST be discarded.</t>
+            
+            <t>The per-interface state machine for receiving (S,G) Join/Prune has three states.
+                <list style="hanging">
+                    <t hangText="NoInfo (NI)"><vspace blankLines="0" />
+                        The interface has no (S,G) Join state and no timers running.
+                    </t>
+                    <t hangText="Join (J)"><vspace blankLines="0" />
+                        One of the routers reachable on interface I has requested receiving source-specific traffic sent by S to G. If the router is the DF on this interface (I_am_DF(RPA(G),I) is TRUE), the Join state will cause us to forward packets sent by S to G on this interface.
+                    </t>
+                    <t hangText="PrunePending (PP)"><vspace blankLines="0" />
+                        The router has received a a Prune(S,G) message and is waiting for the PrunePending timer to timeout before moving to the NoInfo state. During that lapse of time, forwarding takes place exactly like in the Join state and on-link routers can override the Prune(S,G) by sending a Join(S,G) message.
+                    </t>
+                </list>
+            </t>
+            
+            <t>(S,G) per-interface state machine events, transitions and timer values are similar to PIM-BIDIR's (*,G) (By replacing (*,G) by (S,G)). Details can be found in <eref target="http://tools.ietf.org/html/rfc5015#section-3.4.1">Section 3.4.1</eref> from <xref target="RFC5015"/>.</t>
+            
+        </section>
+        
+        <section anchor="dSGr" title="Receiving (S,G,rpt) Join/Prune Messages">
+            <t>When a router receives a Join(S,G,rpt) or a Prune(S,G,rpt) for which SSBIDIR is enabled, it MUST first check if the group's [B]idir flag is set. If not, the packet MUST be discarded.</t>
+            
+            <t>When a message is parsed for a given group G, (*,G) Joins must be processed before processing any (S,G,rpt) Prunes. Transient state "PruneTmp" and "Prune-Pending-Tmp" are used during the parsing process.</t>
+            
+            <t>The per-interface state machine for receiving (S,G,rpt) Join/Prune messages has four states.
+                <list style="hanging">
+                    <t hangText="NoInfo (NI)"><vspace blankLines="0" />
+                        The interface has no (S,G,rpt) Prune state and no timers running.
+                    </t>
+                    <t hangText="Prune (P)"><vspace blankLines="0" />
+                        The per-interface (*,G) state is set to Join and we received a Prune(S,G,rpt) message. It means that all interface's neighbors that are interested in (*,G) do not want to receive packets sent by source S. If the router is the DF on this interface (I_am_DF(RPA(G),I) is TRUE), the Prune state will cause us to *not* forward packets sent by S to G on this interface.
+                    </t>
+                    <t hangText="PrunePending (PP)"><vspace blankLines="0" />
+                        The router has received a Prune(S,G,rpt) message and is waiting for the PrunePending timer to timeout before moving to the Prune state. During that lapse of time, forwarding takes place exactly like the NoInfo state and neighboring routers can override the Prune(S,G,rpt) by sending a Join(S,G,rpt) message.
+                    </t>
+                    <t hangText="PruneTmp (P')">
+                        This state is a transient state that is used as we parse a Join/Prune message that contains a (*,G) Join. A (S,G,rpt) Prune present in the same message will reinstate the Prune state. However, if we reach the end of the message without encountering such a (S,G,rpt) Prune, we will revert to NoInfo state in this state machine. For forwarding purposes, PruneTmp behaves exactly like Prune.
+                    </t>
+                    <t hangText="Prune-Pending-Tmp (PP')">
+                        This state is a transient state that is identical to P' except that it is associated with the PP state rather than the P state. For forwarding purposes, PP' behaves exactly like PP state.
+                    </t>
+                </list>
+            </t>
+            
+            <t>(S,G,rpt) per-interface state machine events, transitions and timer values are similar to PIM-SM (S,G,rpt) per-interface state. Details can be found in <eref target="http://tools.ietf.org/html/rfc4601#section-4.5.4">Section 4.5.4</eref> from <xref target="RFC4601"/>.</t>
+            
+            <t>In addition, the state machine needs to react to the "Stop Being DF on I" event. When this event occurs, all (S,G,rpt) states associated with I are moved to "NoInfo" and PrunePending and Expiry timers are stopped (if running).</t>
+            
+            
+        </section>
+        
+        <section anchor="uG" title="Sending (*,G) Join/Prune Messages">
+            <t>The Upstream (*,G) state machine is similar to the state machine described in PIM-BIDIR's specifications.</t>
+            
+            <figure suppress-title="true">
+                <preamble>For BIDIR compatibility support, the JoinDesired(G) macro must be modified as follows:</preamble><artwork>
+bool JoinDesired(G) {
+    out = joins(*,G) (+) pim_include(*,G)
+    if(!ssbidir_neighbor(RPF_neighbor(RPA(G)))) {
+        out = out (+) {olist(S,G) for any source S}
+    }
+    return (out (-) RPF_interface(RPA(G))) != {}
+}
+                </artwork><postamble>In case the upstream neighbor is not SSBIDIR capable, downstream (S,G) Joins are translated into upstream (*,G) Joins.</postamble>
+            </figure>
+        </section>
+        
+        <section anchor="uSG" title="Sending (S,G) Join/Prune Messages">
+            <t>The upstream (S,G) state machine holds join state from downstream routers and local membership information. It controls (S,G) Join/Prune message emission.</t>
+            
+            <t>This state machine has two possible states.
+                <list style="hanging">
+                    <t hangText="Not Joined"><vspace blankLines="0" />
+                        The downstream state machines and local membership information do not indicate that the router needs to send (S,G) Joins or override other routers' (S,G) prunes.
+                    </t>
+                    <t hangText="Joined"><vspace blankLines="0" />
+                        The downstream state machines and local membership information indicate that the router needs to send (S,G) Joins and override other routers' (S,G) prunes.
+                    </t>
+                </list>
+                In addition, one timer JT(S,G) is kept that is used to trigger the sending of a Join(S,G) to the upstream Designated Forwarder RPF_neighbor(RPA(G)).
+            </t>
+            
+            <t>The detailed state machine is derived from PIM-BIDIR (*,G) upstream state machine by replacing (*,G) references with (S,G).</t>
+            
+            
+            <figure suppress-title="true">
+                <preamble>The JoinDesired(S,G) macro is defined as follows:</preamble><artwork>
+bool JoinDesired(S,G) {
+    if(!ssbidir_neighbor(RPF_neighbor(RPA(G))) OR
+        JoinDesired(G))
+        return FALSE
+    return (olist(S,G) (-) RPF_interface(RPA(G))) != {}
+}
+                </artwork><postamble>In case the upstream neighbor is not SSBIDIR capable, downstream (S,G) Joins are translated into upstream (*,G) Joins.</postamble>
+            </figure>
+            
+        </section>
+        
+        <section anchor="uSGrG" title="Sending (S,G,rpt) Join/Prune in (*,G) messages">
+            <t>Whenever a Join(*,G) message is sent in response to a Prune(*,G), it must include a Prune(S,G,rpt) for every (S,G,rpt) upstream state that is set to Pruned.</t>
+            <t>When sending a periodic Join(*,G), it must include a Prune(S,G,rpt) for every (S,G,rpt) state set to Pruned which Override Timer is not running.</t>
+            
+            <t>Note that if the message construction is made after processing the Join(*,G) event in the upstream (S,G,rpt) state machine, the first paragraph can be ignored and the second paragraph applied in all cases. That is because the Join(*,G) reception event cancels all (S,G,rpt) Override Timers.</t>
+        </section>
+        
+        <section anchor="uSGr" title="Sending triggered (S,G,rpt) Join/Prune Messages">
+            <t>The upstream (S,G,rpt) state machine holds join state from downstream routers and local membership information. It controls (S,G,rpt) Join/Prune message emission. It is only used when upstream (*,G) state is Joined.</t>
+            
+            <t>The upstream (S,G,rpt) state machine has two states:
+                <list style="hanging">
+                    <t hangText="NotPruned"><vspace blankLines="0" />
+                        The upstream (*,G) state is "Joined" but downstream routers and local membership indicates that at least one downstream interface should receive traffic sent from S to G.
+                    </t>
+                    <t hangText="Pruned"><vspace blankLines="0" />
+                        The upstream (*,G) state is "Joined" but not a single downstream interface requested traffic sent from S to G.
+                    </t>
+                    <t hangText="ASNotJoined(G)"><vspace blankLines="0" />
+                        The All-Sources (*,G) state is NotJoined. This state is kept because the (*,G) state machine takes care of sending (S,G,rpt) Prunes when JoinDesired(G) changes to true. Similarly, when JoinDesired(G) changes to false, all (S,G,rpt) states are moved back to ASNotJoined.
+                    </t>
+                </list>
+                In addition, there is an (S,G,rpt) Override Timer, OT(S,G,rpt). In the NotPruned state, it is used to delay triggered Join(S,G,rpt) messages to prevent explosion of triggered messages. In the Pruned state, it is used to delay Prune(S,G,rpt) message origination whenever we received a Join(S,G,rpt) on that interface. This timer can be either cancelled, decreased to t_override or increased to t_suppressed (see PIM-BIDIR specifications for t_override and t_suppressed values).
+            </t>
+            
+            <figure title="Upstream (S,G,rpt) state machine.">
+                <preamble>The following tables show (S,G,rpt) upstream state machine transitions and events.</preamble><artwork>
++----------------+--------------------------------------------------+
+|                |                    State                         |
+|     Event      +----------------------+---------------------------+
+|                |   ASNotJoined(NJ)    | NotPruned(NP) &amp; Pruned(P) |
++----------------+----------------------+---------------------------+
+| JoinDesired(G) | If PD(S,G,rpt) -> P  |              _            |
+| -> true        | Else    -> NP        |                           |
++----------------+----------------------+---------------------------+
+| JoinDesired(G) |           _          | -> NP                     |
+| -> false       |                      |                           |
++----------------+----------------------+---------------------------+
+| Other events   | Do nothing           |
++----------------+----------------------+
+
+
++-----------------------+-------------------------------------------+
+|                       |                   State                   |
+|         Event         +---------------------+---------------------+
+|                       |     NotPruned(NP)   |       Pruned(P)     |
++-----------------------+---------------------+---------------------+
+| PruneDesired(S,G,rpt) | -> P; Cancel OT;    |          _          |
+| -> true               | Send Prune(S,G,rpt) |                     |
++-----------------------+---------------------+---------------------+
+| PruneDesired(S,G,rpt) |          _          | -> NP; Cancel OT;   |
+| -> false              |                     | Send Join(S,G,rpt)  |
++-----------------------+---------------------+---------------------+
+| See Prune(S,G,rpt)    | Decrease OT to      | Cancel OT           |
+| to RPF_DF(RPA(G))     | t_override          |                     |
++-----------------------+---------------------+---------------------+
+| See Join(S,G,rpt)     | Cancel OT           | Increase OT to      |
+| to RPF_DF(RPA(G))     |                     | t_suppress          |
++-----------------------+---------------------+---------------------+
+| See Prune(*,G)        | Do nothing          | Cancel OT           |
+| to RPF_DF(RPA(G))     |                     |                     |
++-----------------------+---------------------+---------------------+
+| DF Changes            | Cancel OT           | Send Join/Prune to  |
+|                       |                     | old/new DF          |
++-----------------------+---------------------+---------------------+
+| DF GenId changes      | Do nothing          | Decrease OT to      |
+|                       |                     | t_override          |
++-----------------------+---------------------+---------------------+
+| Override Timer        | Send Join(S,G,rpt)  | Send Prune(S,G,rpt) |
+| timeouts              |                     |                     |
++-----------------------+---------------------+---------------------+
+                </artwork><postamble></postamble>
+            </figure>
+            
+            <figure suppress-title="true">
+                <preamble>The (S,G,rpt) upstream state machine uses the following macro:</preamble><artwork>
+bool PruneDesired(S,G,rpt) {
+    if(!ssbidir_link(RPF_interface(RPA(g))))
+        return FALSE
+        
+    return (olist(S,G) (-) RPF_interface(RPA(G))) == {}
+}
+                </artwork><postamble>The PruneDesired(S,G,rpt) macro can return true even if JoinDesired(G) is false (And thus does not always means that Prune(S,G,rpt) should be sent upstream). That is to differentiate PruneDesired(S,G,rpt) transitions that are due to JoinDesired(G) transition and those which aren't.</postamble>
+            </figure>
+            
+        </section>
+    </section>
+    
+    <section title="SSBIDIR-PIM Packet Formats">
+        <t>This section describes the details of the packet formats for PIM-SSBIDIR control messages.</t>
+        
+        <section title="Encoded-Group Format">
+            <t>For all groups G operating in SSBIDIR mode, the [B]idirectional bit must be set in the Group-Encoded format included in Join/Prune messages.</t>
+        </section>
+        
+        <section anchor="ssbidir-option" title="SSBIDIR Capable PIM-Hello Option">
+            <t>SSBIDIR-PIM introduces one new PIM-Hello option.
+                <list style="symbols">
+                    <t>OptionType TBD_BY_IANA: Source-Specific Bidirectional Capable.</t>
+                </list>
+            </t>
+            <figure suppress-title="true">
+                <artwork>
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|      Type = TBD_BY_IANA       |         Length = 0            |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                </artwork></figure>
+            
+            <t>This option MUST be included in all PIM Hello messages sent by SSBIDIR capable routers.</t>
+            <t>SSBIDIR capable routers MUST as well include the Bidirection PIM-Hello Option in sent Hello messages.</t>
+            
+        </section>
+    </section>
+</section>
+
+<section title="PIM-BIDIR Compatibility">
+    <t>Compatibility problems between SSBIDIR and BIDIR routers occur when a BIDIR router joins (*,G) while an SSBIDIR router is pruning (S,G,rpt) on the same link: The BIDIR router will not suppress (S,G,rpt) Prunes, which will prevent it from receiving traffic from source S. Similarly, if the Designated Forwarder is not SSBIDIR capable, it will reject (S,G) and (S,G,rpt) messages.</t>
+    
+    <t>PIM-SSBIDIR interoperates with PIM-BIDIR by detecting BIDIR-only neighbors and suppressing undesired behaviors. When at least one neighbor, on a given link, is BIDIR-only, (S,G,rpt) messages are not used anymore (all traffic to G will be requested). When the upstream router is BIDIR-only, both (S,G,rpt) and (S,G) messages are not used anymore and only All-Source Multicast is supported.</t>
+    
+    <t>PIM-BIDIR compatibility SHOULD be supported. If an implementer chooses not to implement the compatibility support, its implementation MUST behave as if all neighbors were SSBIDIR capable. Additionaly, an error MUST be logged in a rate-limited manner if a Hello message that does not include the SSBIDIR Capable Option is received.</t>
+    
+    <t>PIM-BIDIR capable routers send (*,G) Join/Prune messages with the [B]idir bit set, but do not deal with (S,G) or (S,G,rpt) Join/Prune messages. The expected behavior from BIDIR capable routers in such situations is not specified. In order to support (S,G) subscriptions while operating in compatibility mode, we expect BIDIR implementations to silently ignore source-specific Join/Prunes.</t>
+</section>
+
+<section title="Security Considerations">
+    <t>Similarly to PIM-SM, introducing Source-Specific support to PIM BIDIR makes it vulnerable to easy deny of service attacks by generating lots of (S,G) Join or (S,G,rpt) Prune states for different sources.</t>
+    <t>In order to operate securely, PIM messages SHOULD be authenticated and local subscriptions should be limited in rate and number (On a per-host basis if the link-layer provides authentication, on a per-link basis otherwise).</t>
+</section>
+
+<section title="IANA Considerations">
+    <t>IANA is kindly asked to assign a new PIM-Hello Option Type to be used for Source-Specific Bidirectional BIDIR-PIM Hello options.</t>
+</section>
+
+</middle>
+
+<back>
+    
+    <references title="Normative References">
+        <?rfc include="reference.RFC.5015.xml"?> <!-- PIM BIDIR -->
+        <?rfc include="reference.RFC.4601.xml"?> <!-- PIM SM -->
+        <?rfc include="reference.RFC.3810.xml"?> <!-- MLDv2 -->
+        <?rfc include="reference.RFC.3376.xml"?> <!-- IGMPv3 -->
+    </references>
+    
+    <references title="Informative References">
+        <?rfc include="reference.I-D.ietf-homenet-arch.xml"?>
+        <?rfc include="reference.RFC.5496.xml"?> <!-- PIM RPF Vector -->
+    </references>
+    
+    
+    <section title="Acknowledgments">
+        
+        <t>The author would like to thank Steven Barth, Mohammed Hawari, Mark Townsley, Stig Venaas and IJsbrand Wijnands for their useful comments.</t>
+        
+    </section>
+    
+</back>
+</rfc>
