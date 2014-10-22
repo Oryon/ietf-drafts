@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+
+<rfc
+    category="info"
+    ipr="trust200902"
+    docName="draft-pfister-pim-border-proxy-00"
+    >
+
+<?rfc toc="yes"?> <?rfc symrefs="yes"?> <?rfc autobreaks="yes"?>
+<?rfc tocindent="yes"?> <?rfc compact="yes"?> <?rfc subcompact="no"?>
+
+<front>
+
+<title abbrev="PIM Proxy">Protocol Independent Multicast Border Proxying</title>
+
+<author initials="P" surname="Pfister" fullname="Pierre Pfister">
+<organization>Cisco Systems</organization>
+<address>
+<postal>
+<street/>
+<city>Paris</city>
+<country>France</country>
+</postal> 		
+<email>pierre@darou.fr</email>
+</address>
+</author>
+
+<date month="October" year="2014" />
+
+<keyword>PIM</keyword>
+<keyword>Multicast</keyword>
+<keyword>Proxy</keyword>
+
+<abstract>
+
+<t>This document describes an extension to the Protocol Independent Multicast (PIM) multicast routing protocol that enables PIM proxying from PIM domains toward other multicast domains. It relies on PIM Proxies located on domain borders and Proxy Controllers which can be located anywhere. This document describes how subscriptions can be proxied toward domain's border interfaces using MLDv2 and IGMPv3, but other protocols could be used as well. Once multicast traffic is received on a proxied interface, it can be forwarded as if originated by a directly connected source.</t>
+
+</abstract>
+
+</front>
+
+<middle>
+
+<section title="Introduction">
+    <t>The Protocol Independent Multicast (PIM - <xref target="RFC4601"/>) routing protocol initialy reacts to two different event types: multicast traffic reception from a connected source, and local multicast subscription (MLD or IGMP) state change on a connected link. This approach works when the network consists of a single PIM multicast domain, but doesn't when border routers are connected to different multicast domains. In such situations, the border routers need to be told to which group they should subscribe to on their egress interfaces before multicast traffic can be received.</t>
+    
+    <t>This document defines PIM Proxy's and PIM Proxy Controller's behaviors. There may be one or multiple instances of each in the same PIM domain. Each controller opens a TCP connection toward every proxy it wants to interact with and sends updates everytime the Proxy's state should be updated.</t>
+    
+    <t>In PIM-SM domains, one possible application of this extension consists in using the Rendez-Vous as a PIM Proxy Controller for all border routers, which in turn reflects network-wide subscription state on domain's external interfaces using MLDv2 <xref target="RFC3810"/> or IGMPv3 <xref target="RFC3376"/>. In PIM-BIDIR domains, the same approach could be used, but wouldn't support Source-Specific multicast. Instead, every router can reflect the local subscription state of links on which it is the Designated Forwarder.</t>
+    
+    <t>This extension was designed in order to allow ISP originated traffic to reach subscribed hosts located inside a home network <xref target="I-D.ietf-homenet-arch"/>.</t>
+</section>
+
+<section title="Protocol Specifications">
+    <t>This protocol allows controllers to push PIM subscription state toward proxies. The state a given controller pushes toward a given proxy may differ depending on the proxy, the local configuration, and may not reflect the local MLD or IGMP querier state. It is an arbitrary choice and depends on the purpose of the proxy.</t>
+    
+    <t>The following state is maintained for every established TCP connection and every PIM Group/Source state ((*,G), (S,G,rpt), (S,G), etc... ). Although this is implementation specific, the generic behavior would consist in keeping the state for every Group/Source pair in their respective Encoded-Group and Encoded-Source formats (e.g. different states whether [B]idir bit is set or not).
+        <list style="hanging">
+            <t hangText="Mode:">One of { "NoInfo", "Join", "Prune" }.</t>
+        </list>
+        If no state is stored for a given Group/Source pair, it is equivalent to the "NoInfo" state. Similarly, after being switched to "NoInfo" state, a stored state may be removed.
+    </t>
+    
+    
+    
+    <section title="Proxy Controller Behavior">
+        <t>A proxy controller opens a TCP connection with every proxy it wants a peering with. When a connection is lost, the state MUST be flushed and pushed again, starting from "NoInfo" for every Source/Group pair.</t>
+    </section>
+    
+    <section title="Proxy Behavior">
+        <t>A proxy MUST listen on port PIM_PROXY_TCP_PORT for incoming TCP connections. When a new connection is established, a new subscription state is created.</t>
+    </section>
+    
+    
+    <section title="PIM Proxy Message format">
+        
+        
+        <section title="Message Header">
+            <t>PIM Proxy messages are transported over TCP and make use of the following TLV format.</t>
+            
+            <figure anchor="PIM_Header">
+                <preamble></preamble>
+                <artwork>
+0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|             Type              |           Length              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                             Value
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+...
+                </artwork>
+                <postamble></postamble>
+            </figure>
+            
+            <t>
+                <list style="hanging">
+                    <t hangText="Type:"><vspace blankLines="0" />One of the defined message types.</t>
+                    <t hangText="Length:"><vspace blankLines="0" />The byte length of the value.</t>
+                    <t hangText="Value:"><vspace blankLines="0" />The value.</t>
+                </list>
+            </t>
+        </section>
+        
+        
+        <section title="State Update Message">
+            <t>PIM Proxy State Update messages use the following format.</t>
+            
+            <figure anchor="PIM_Update">
+                <preamble></preamble>
+                <artwork>
+0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|           Type = 1            |           Length              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                               ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|         Multicast Group Address n (Encoded-Group format)      |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|       Number of Sources       |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ...
+
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|            Source Address m (Encoded-Source format)           |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|     State     |
++-+-+-+-+-+-+-+-+ ...
+
+                </artwork>
+                <postamble></postamble>
+            </figure>
+            
+            <t>
+                <list style="hanging">
+                    <t hangText="Type:"><vspace blankLines="0" />
+                        State Update message type (1)</t>
+                    <t hangText="Number of Sources:"><vspace blankLines="0" />
+                        The number of sources associated with the group.</t>
+                    <t hangText="State:"><vspace blankLines="0" />
+                        The state the controller wants the proxy to save for the given group/source pair.
+                        <list style="symbols">
+                            <t>NoInfo (0)</t>
+                            <t>Join   (1)</t>
+                            <t>Prune  (2)</t>
+                        </list>
+                    </t>
+                </list>
+            </t>
+            
+            <t>Upon reception of a State Update message, a proxy will switch the state associated with every Group/Source pairs included in the message to the state specified in the message.</t>
+        </section>
+        
+        <section title="Keep Alive Message">
+            <t>Keep Alive messages are used to keep the TCP connection open and have the following format (Most current TCP implementations support TCP keep-alives, but not all. The Keep-Alive TLV is specified because keeping the connexion open is a requirement for not losing state).</t>
+            
+            <figure anchor="PIM_KA">
+                <preamble></preamble>
+                <artwork>
+0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|           Type = 2            |          Length = 0           |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                </artwork>
+                <postamble></postamble>
+            </figure>
+            
+        </section>
+
+        
+    </section>
+</section>
+
+
+
+<section title="Different proxy types">
+    <t>This document doesn't intend to specify all the possible proxy behaviors. Requests could be translated into MLD and IGMP, relayed toward another separated PIM domain, translated into another multicast delivery protocol, or even be used for monitoring purposes.</t>
+    
+    <t>Any proxy behavior CAN be overriden by local policies. For instance, proxying behavior may depend on the group's scope or firewalling rules.</t>
+    
+    <t>Once multicast traffic is requested on an egress interface, PIM should be used as usual in order to decide whether incoming traffic should be forwarded on an ingress interface.</t>
+    
+    <section title="IGMP/MLD proxy">
+        <t>This section describes how to translate a PIM Proxy group's state toward an MLDv2/IGMPv3 listener state. It can be used for both PIM-SM and PIM-BIDIR (states are considered regardless of the BIDIR bit).</t>
+        
+        <t>According to PIM-SM and PIM-BIDIR specifications, (*,G) or (S,G) can only be in state "NoInfo" or "Join", and (S,G,rpt) can only be in state "NoInfo" or "Prune".</t>
+        
+        <t>If (*,G) is set to "Join", the MLDv2/IGMPv3 group state should be set to "Exclude" and the Exclude Sources List should contain all sources S for which (S, G, rpt) is set to "Prune" and (S,G) is set to "NoInfo".</t>
+        <t>If (*,G) is set to "NoInfo", the MLDv2/IGMPv3 group state should be set to "Include" and the Include Sources List should contain all sources S for which (S, G) is set to "Join".</t>
+        
+        <t>When multiple controllers are pushing state to the same proxy, the algorithm detailed in MLDv2 and IGMPv3 specifications should be used in order to merge the different requests.</t>
+    </section>
+    
+    <section title="IGMP/MLD controller">
+        <t>This section describes how to translate an MLDv2/IGMPv3 querier state into a PIM subscription state.</t>
+        <t>If the group's MLDv2/IGMPv3 state is "Include", the PIM state consists in (S,G) states set to "Join" for all S in the MLDv2/IGMPv3 source include list.</t>
+        <t>If the group's MLDv2/IGMPv3 state is "Exclude", the (*,G) state is set to "Join" and all (S,G,rpt) for S in the MLDv2/IGMPv3 source exclude list are set to "Prune".</t>
+    </section>
+    
+</section>
+
+<section title="Security Considerations">
+    <t>PIM Proxy messages are sent multiple hops away and are used in order to control other router's behavior. Attackers could open a connection from outside or inside the network and trigger multicast requests and forwarding. TLS or IPSec could be used in order to secure the connection. If not, connections should at least be filtered based on the controller's IP source address.</t>
+</section>
+
+<section title="IANA Considerations">
+    <t>IANA is kindly requested to:
+        <list style="symbols">
+            <t>Reserve a TCP port number for PIM Proxies.</t>
+            <t>Create a new registy for PIM Proxy TLVs.</t>
+            <t>Create a new registry for Group/Source states.</t>
+        </list>
+    </t>
+</section>
+
+</middle>
+
+<back>
+    
+    <references title="Normative References">
+        <?rfc include="reference.RFC.5015.xml"?> <!-- PIM BIDIR -->
+        <?rfc include="reference.RFC.4601.xml"?> <!-- PIM SM -->
+        <?rfc include="reference.RFC.3810.xml"?> <!-- MLDv2 -->
+        <?rfc include="reference.RFC.3376.xml"?> <!-- IGMPv3 -->
+    </references>
+    
+    <references title="Informative References">
+        <?rfc include="reference.I-D.ietf-homenet-arch.xml"?>
+    </references>
+    
+    
+    <section title="Acknowledgments">
+        
+        <t>The author would like to thank Steven Barth and Mohammed Hawari for their help in the protocol design and implementation process, as well as Mark Townsley, Stig Venaas, Markus Stenberg and IJsbrand Wijnands for their useful inputs.</t>
+        
+    </section>
+    
+    <section title="Discussion">
+            <t>Another message type we would probably need is a "Traffic Present" message. Sent from the Proxy toward the Controller, it would let the controller take actions when the same traffic is provided by two different border routers. But that gets inefficient when there are more than one controller.</t>
+    </section>
+    
+</back>
+</rfc>
