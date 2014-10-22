@@ -3,7 +3,7 @@
 <!DOCTYPE rfc SYSTEM "rfc2629.dtd">
 
 <rfc
-    category="info"
+    category="std"
     ipr="trust200902"
     docName="draft-pfister-pim-ssbidir-00"
     >
