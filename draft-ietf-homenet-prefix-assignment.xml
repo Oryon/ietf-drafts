@@ -406,6 +406,15 @@
 	</section>
 		
 	<section anchor="newassign" title="Making a New Assignment">
+        
+        <t>In situations where a router can make an assignment (see <xref target="paalg"/>), the following rules are used in the following order:
+            <list style="numbers">
+                <t>If the configuration specifies a custom behavior (e.g. always ignore/accept a particular delegated prefix), use the configuration entry.</t>
+                <t>If the Delegated Prefix Preferred Lifetime is strictly greater than zero, an assignment MUST be made.</t>
+                <t>If no other prefix has a non-zero Preferred Lifetime, and no assignment is made on the link, an assignment SHOULD be made.</t>
+                <t>Otherwise, a new assignment SHOULD NOT be made.</t>
+            </list>
+        </t>
 		
 		<t>When the algorithm decides to make a new assignment, it first needs to specify the desired size of the assigned prefix. Although this algorithm intends to remain generic, the use of 64 bits long prefixes is RECOMMENDED (See <xref target="I-D.ietf-6man-why64"/>). The following table MAY be used as default values, where X is the length of the delegated prefix.
 			<list style="hanging" hangIndent="6">
@@ -470,7 +479,7 @@
 		
 	</section>
 	
-	<section title="Prefix Assignment Algorithm steps">
+	<section anchor="paalg" title="Prefix Assignment Algorithm steps">
 			
 		<t>At the beginning of the algorithm, all assignments that do not have their Authoritative bit set are marked as 'invalid', and the router computes for each connected link whether it is the designated router, as specified in <xref target="desrouter"/>.</t>
 		
@@ -484,7 +493,7 @@
 				
 				<t>There are four possibilities at this stage.
 					 <list style="numbers">
-						 <t>If no AP is found, and no CP is found, a new assignment MUST be made if and only if the router considers itself as the designated router. See <xref target="newassign"/>.</t>
+						 <t>If no AP is found, and no CP is found, a new assignment can be made if and only if the router considers itself as the designated router. Whether to create an assignment or not, and which prefix to use, is specified in <xref target="newassign"/>.</t>
 						 <t>If an AP is found, and no CP is found, the AP MUST be accepted. The new CP's advertised bit MUST be set if and only if the router considers itself as the designated router.</t>
 						 <t>If no AP is found, and a CP is found, the router MUST check if the CP's assignment is valid. If it is, the local assignment is marked as valid and advertised. If it isn't, it is destroyed and the algorithm applies case 1.</t>
 						 <t>If both an AP and a CP are found, the router must check if the prefixes are the same. If they are different and if the CP's Authoritative bit is not set, the CP MUST be deleted and the algorithm applies case 2. If the prefixes are the same, the CP must be updated with the AP's priority value, marked as valid, and advertised if and only if the router considers itself as designated on the link.</t>
