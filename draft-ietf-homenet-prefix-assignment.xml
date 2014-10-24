@@ -559,6 +559,8 @@
 
 <section anchor="hysteresis" title="Hysteresis Principle">
     
+    <t>The IPv6 Stateless Address Autoconfiguration <xref target="RFC4862"/> states that host addresses can be kept up to 2 hours after a Router Advertisement wit zero lifetime is received. Therefore, routers must be carefull before assigning or deprecating a prefix.</t>
+    
     <section title="Prefix and Address assignments">
 	
 	<t>When the flooding protocol is started, the router MUST wait FLOODING_DELAY before executing the prefix assignment algorithm for the first time.</t>
@@ -574,11 +576,28 @@
     </section>
     
     <section anchor="deleg" title="Delegated Prefixes">
+        <t>Some links may be unreliable, causing repetitive connectivity loss. Such links shouldn't cause IP reconfiguration.</t>
+        
+        <section title="Unreliable uplink">
+            <t>When a router detects uplink connectivity loss, Delegated Prefixes' lifetimes from prefixes obtained through the uplink MUST be modified in the following way.
+                <list style="symbols">
+                    <t>The Preferred Lifetime is set to 0.</t>
+                    <t>The Valid Lifetime is set to the minimum between the current Valid Lifetime and two hours.</t>
+                    <t>The default route associated with the prefix is not advertised anymore.</t>
+                </list>
+            </t>
+            <t>This behavior is similar to <xref target="RFC7084"/> specifications and provides stable host configuration in case of unreliable uplink.</t>
+        </section>
+        
+        <section title="Unreliable in-home link">
+        
         <t>When a router stops advertising a Delegated Prefix, it MUST first deprecate that Delegated Prefix by advertising it for DP_DEPRECATE_FACTOR*FLOODING_DELAY seconds with zero valid and preferred lifetimes.</t>
         
-        <t>When a router receives a deprecated Delegated Prefix advertisement, it must remove the Delegated Prefix from its Delegated Prefixes list.</t>
+        <t>When a router receives a deprecated Delegated Prefix advertisement from the Flooding Protocol, it MUST remove the Delegated Prefix from its Delegated Prefixes list.</t>
         
-        <t>When a router stops receiving a Delegated Prefix from the Flooding Protocol, it SHOULD keep using that delegating prefix up to a period of min(remaining lifetime, DP_KEEP_ALIVE_TIME) seconds.</t>
+        <t>When a router stops receiving a Delegated Prefix from the Flooding Protocol, it SHOULD keep using that delegating prefix up to a period of min(remaining Valid Lifetime, DP_KEEP_ALIVE_TIME) seconds.</t>
+        
+        </section>
     </section>
 
 </section>
