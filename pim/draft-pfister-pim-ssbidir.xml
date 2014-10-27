@@ -35,7 +35,7 @@
 
 <abstract>
 
-<t>This document adds Source-Specific capabilities to the Bidirectional Protocol Independent Multicast (PIM-BIDIR) routing protocol. Similarly to PIM-BIDIR, multicast traffic is always forwarded to the RP Link, but packets are also filtered based on their source address and source-specific subscription state. This operation mode is backwards compatible with PIM-BIDIR, provides a simpler alternative to PIM-SM and does not suffer when the multicast source location cannot be precisly determined.</t>
+<t>This document adds Source-Specific capabilities to the Bidirectional Protocol Independent Multicast (PIM-BIDIR) routing protocol. Similarly to PIM-BIDIR, multicast traffic is always forwarded to the RP Link, but packets are also filtered based on their source address and source-specific subscription state. This operation mode is backwards compatible with PIM-BIDIR, provides a simpler alternative to PIM-SM and does not suffer when the multicast source location cannot be determined.</t>
 </abstract>
 
 </front>
@@ -43,10 +43,10 @@
 <middle>
 
 <section title="Introduction">
-    <t>The Protocol Independent Multicast (PIM - <xref target="RFC4601"/>) Sparse-Mode provides All-Source (ASM) and Source-Specific multicast (SSM) routing using an optimal source-specific routing path, but at the cost of two major drawbacks.
+    <t>The Protocol Independent Multicast (PIM - <xref target="RFC4601"/>) Sparse-Mode provides All-Source (ASM) and Source-Specific multicast (SSM) routing using an optimal source-specific routing path, but at the cost of two major drawbacks:
         <list style="numbers">
             <t>It relies on packet tunneling for All-Source Multicast (Pretty complex in terms of implementation).</t>
-            <t>It does not provide native multicast when some multicast source's location cannot be determined precisly (e.g. when multiple default routes are in the RIB).</t>
+            <t>It does not provide native multicast when some multicast source's location cannot be determined (e.g. when multiple default routes are in the RIB).</t>
         </list>
     </t>
     
@@ -61,11 +61,11 @@
                     <t>Register and Register-Stop messages are not used (No tunneling).</t>
                 </list>
             </t>
-            <t>Packets are forwarded nativly even when the source's location can't be determined.</t>
+            <t>Packets are forwarded natively even when the source's location can't be determined.</t>
         </list>
     </t>
     
-    <t>This extension was designed for multi-homed home networks (<xref target="I-D.ietf-homenet-arch"/> - a typical case in which source-location cannot be determined for ISP-orgininated traffic because of the multiple default routes). PIM-SM using PIM RPF Vectors <xref target="RFC5496"/> could be another alternative, but it is not clear how routers should behave when they receive conflicting RPF vectors. The protocol simplicity was also an important consideration as home routers usualy have little resources and software reliability is utterly important. Inputs from the working group regarding other possible solutions are very welcome.</t>
+    <t>This extension was designed for multi-homed home networks (<xref target="I-D.ietf-homenet-arch"/> - a typical case in which source-location cannot be determined for ISP-origininated traffic because of the multiple default routes). PIM-SM using PIM RPF Vectors <xref target="RFC5496"/> could be another alternative, but it is not clear how routers should behave when they receive conflicting RPF vectors. The protocol simplicity was also an important consideration as home routers usually have little resources and software reliability is important. Inputs from PIM and Homenet working group regarding other possible solutions are very welcome.</t>
 </section>
 
 
@@ -504,7 +504,7 @@ bool PruneDesired(S,G,rpt) {
                 </artwork></figure>
             
             <t>This option MUST be included in all PIM Hello messages sent by SSBIDIR capable routers.</t>
-            <t>SSBIDIR capable routers MUST as well include the Bidirection PIM-Hello Option in sent Hello messages.</t>
+            <t>SSBIDIR capable routers MUST as well include the Bidirection PIM-BIDIR Hello Option in sent Hello messages.</t>
             
         </section>
     </section>

@@ -44,19 +44,19 @@
 <middle>
 
 <section title="Introduction">
-    <t>The Protocol Independent Multicast (PIM - <xref target="RFC4601"/>) routing protocol initialy reacts to two different event types: multicast traffic reception from a connected source, and local multicast subscription (MLD or IGMP) state change on a connected link. This approach works when the network consists of a single PIM multicast domain, but doesn't when border routers are connected to different multicast domains. In such situations, the border routers need to be told to which group they should subscribe to on their egress interfaces before multicast traffic can be received.</t>
+    <t>The Protocol Independent Multicast (PIM - <xref target="RFC4601"/>) routing protocol initially reacts to two different event types: multicast traffic reception from a connected source, and local multicast subscription (MLD or IGMP) state change on a connected link. This approach works when the network consists of a single PIM multicast domain, but does not when border routers are connected to different multicast domains. In such situations, the border routers need to be told to which group they should subscribe to on their egress interfaces before multicast traffic can be received.</t>
     
-    <t>This document defines PIM Proxy's and PIM Proxy Controller's behaviors. There may be one or multiple instances of each in the same PIM domain. Each controller opens a TCP connection toward every proxy it wants to interact with and sends updates everytime the Proxy's state should be updated.</t>
+    <t>This document defines PIM Proxy's and PIM Proxy Controller's behavior. There may be one or multiple instances of each in the same PIM domain. Each controller opens a TCP connection toward every proxy it wants to interact with and sends updates every time the Proxy's state should be updated.</t>
     
-    <t>In PIM-SM domains, one possible application of this extension consists in using the Rendez-Vous as a PIM Proxy Controller for all border routers, which in turn reflects network-wide subscription state on domain's external interfaces using MLDv2 <xref target="RFC3810"/> or IGMPv3 <xref target="RFC3376"/>. In PIM-BIDIR domains, the same approach could be used, but wouldn't support Source-Specific multicast. Instead, every router can reflect the local subscription state of links on which it is the Designated Forwarder.</t>
+    <t>In PIM-SM domains, one possible application of this extension consists in using the Rendezvous as a PIM Proxy Controller for all border routers, which in turn reflects network-wide subscription state on domain's external interfaces using MLDv2 <xref target="RFC3810"/> or IGMPv3 <xref target="RFC3376"/>. In PIM-BIDIR domains, the same approach could be used, but would not support Source-Specific multicast. Instead, every router can reflect the local subscription state of links on which it is the Designated Forwarder.</t>
     
-    <t>This extension was designed in order to allow ISP originated traffic to reach subscribed hosts located inside a home network <xref target="I-D.ietf-homenet-arch"/>. Inputs from the working group regarding other possible solutions enabling multicast routing in home networks are very welcome.</t>
+    <t>This extension was designed in order to allow ISP originated traffic to reach subscribed hosts located inside a home network <xref target="I-D.ietf-homenet-arch"/>. Input from PIM and Homenet working group regarding other possible solutions enabling multicast routing in home networks are very welcome.</t>
 </section>
 
 <section title="Protocol Specifications">
     <t>This protocol allows controllers to push PIM subscription state toward proxies. The state a given controller pushes toward a given proxy may differ depending on the proxy, the local configuration, and may not reflect the local MLD or IGMP querier state. It is an arbitrary choice and depends on the purpose of the proxy.</t>
     
-    <t>The following state is maintained for every established TCP connection and every PIM Group/Source state ((*,G), (S,G,rpt), (S,G), etc... ). Although this is implementation specific, the generic behavior would consist in keeping the state for every Group/Source pair in their respective Encoded-Group and Encoded-Source formats (e.g. different states whether [B]idir bit is set or not).
+    <t>The following state is maintained for every established TCP connection and every PIM Group/Source state ((*,G), (S,G,rpt), (S,G)). Although this is implementation specific, the generic behavior would consist in keeping the state for every Group/Source pair in their respective Encoded-Group and Encoded-Source formats (e.g. different states whether [B]idir bit is set or not).
         <list style="hanging">
             <t hangText="Mode:">One of { "NoInfo", "Join", "Prune" }.</t>
         </list>
@@ -66,7 +66,7 @@
     
     
     <section title="Proxy Controller Behavior">
-        <t>A proxy controller opens a TCP connection with every proxy it wants a peering with. When a connection is lost, the state MUST be flushed and pushed again, starting from "NoInfo" for every Source/Group pair.</t>
+        <t>A proxy controller opens a TCP connection with every proxy it wants a peering with. When a new connection is opened, the complete state is first transmitted in order to synchronize the proxy with the controller's state. Then, each time some state is changed, an update is sent through the TCP connection.</t>
     </section>
     
     <section title="Proxy Behavior">
@@ -153,7 +153,7 @@
         </section>
         
         <section title="Keep Alive Message">
-            <t>Keep Alive messages are used to keep the TCP connection open and have the following format (Most current TCP implementations support TCP keep-alives, but not all. The Keep-Alive TLV is specified because keeping the connexion open is a requirement for not losing state).</t>
+            <t>Keep Alive messages are used to keep the TCP connection open and have the following format (Most current TCP implementations support TCP keep-alives, but not all. The Keep-Alive TLV is specified because keeping the connection open is a requirement for not losing state).</t>
             
             <figure anchor="PIM_KA">
                 <preamble></preamble>
@@ -176,9 +176,9 @@
 
 
 <section title="Different proxy types">
-    <t>This document doesn't intend to specify all the possible proxy behaviors. Requests could be translated into MLD and IGMP, relayed toward another separated PIM domain, translated into another multicast delivery protocol, or even be used for monitoring purposes.</t>
+    <t>This document does not intend to specify all the possible proxy behavior. Requests could be translated into MLD and IGMP, relayed toward another separated PIM domain, translated into another multicast delivery protocol, or even be used for monitoring purposes.</t>
     
-    <t>Any proxy behavior CAN be overriden by local policies. For instance, proxying behavior may depend on the group's scope or firewalling rules.</t>
+    <t>Any proxy behavior CAN be overridden by local policies. For instance, proxying behavior may depend on the group's scope or firewalling rules.</t>
     
     <t>Once multicast traffic is requested on an egress interface, PIM should be used as usual in order to decide whether incoming traffic should be forwarded on an ingress interface.</t>
     
@@ -209,7 +209,7 @@
     <t>IANA is kindly requested to:
         <list style="symbols">
             <t>Reserve a TCP port number for PIM Proxies.</t>
-            <t>Create a new registy for PIM Proxy TLVs.</t>
+            <t>Create a new registry for PIM Proxy TLVs.</t>
             <t>Create a new registry for Group/Source states.</t>
         </list>
     </t>
@@ -233,7 +233,7 @@
     
     <section title="Acknowledgments">
         
-        <t>The author would like to thank Steven Barth and Mohammed Hawari for their help in the protocol design and implementation process, as well as Mark Townsley, Stig Venaas, Markus Stenberg and IJsbrand Wijnands for their useful inputs.</t>
+        <t>The author would like to thank Steven Barth and Mohammed Hawari for their help in the protocol design and implementation process, as well as Mark Townsley, Stig Venaas, Markus Stenberg and IJsbrand Wijnands for their useful input.</t>
         
     </section>
     

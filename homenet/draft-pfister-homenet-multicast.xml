@@ -13,7 +13,7 @@
 
 <front>
 
-<title abbrev="Homenet Prefixes">Multicast enabled Home Network using PIM-SSBIDIR and HNCP</title>
+<title abbrev="homenet Prefixes">Multicast enabled Home Network using PIM-SSBIDIR and HNCP</title>
 
 <author initials="P" surname="Pfister" fullname="Pierre Pfister">
 <organization></organization>
@@ -30,12 +30,12 @@
 <date month="October" year="2014" />
 
 <keyword>IPv6</keyword>
-<keyword>Homenet</keyword>
+<keyword>homenet</keyword>
 <keyword>Multicast</keyword>
 
 <abstract>
 
-<t>This document specifies a possible solution enabling multicast routing in a home network. It relies on the Source-Specific Bidirectional variant of the Protocol Independent Multicast routing protocol (PIM-SSBIDIR). HNCP is used to elect the Rendez-vous Point address and a Proxy Controller connected to the Rendez-vous Point Link. Additionally, PIM-SSBIDIR routers behavior is slightly modified on the Rendez-Vous Point Link so that the Proxy Controller may know the home-wide subscription state. Note that this document defines one single working solution to the stated problem: Inputs regarding other possibilities are welcome.</t>
+<t>This document specifies a possible solution enabling multicast routing in a home network. It relies on the Source-Specific Bidirectional variant of the Protocol Independent Multicast routing protocol (PIM-SSBIDIR). HNCP is used to elect the Rendezvous Point address and a Proxy Controller connected to the Rendezvous Point Link. Additionally, PIM-SSBIDIR routers behavior is slightly modified on the Rendezvous Point Link so that the Proxy Controller may know the home-wide subscription state. Note that this document defines one single working solution to the stated problem: Inputs regarding other possibilities are welcome.</t>
 
 </abstract>
 
@@ -46,16 +46,16 @@
 <section title="Introduction">
     <t>IP multicast is used not only for link-local communications but also for site-local exchanges (UPnP <xref target="UPnP"/> or TV over IP). Additionally, we can expect new connected objects will make use of this technique for diverse purposes. Most link types like Ethernet or 802.11 support link-local multicast natively, but a multicast routing protocol is required when multiple links are present. The Protocol Independent Multicast <xref target="RFC4601"/> is one of the most widely used multicast routing protocol. Unfortunately, home networks have some peculiarities that makes it unsuitable without changes.</t>
     
-    <t>This document lists the specifities of home networks regarding multicast, the problems resulting from these specificities and tells how Homenet routers must behave in order to enable multicast routing for both in-home and ISP originated traffic in multi-homed environments.</t>
+    <t>This document lists the specificities of home networks regarding multicast, the problems resulting from these peculiarities and specifies how homenet routers must behave in order to enable multicast routing for both in-home and ISP originated traffic in multi-homed environments.</t>
     
-    <t>The solution makes use of the Source-Specific Bidirectional variant of the Protocol Independent Multicast routing protocol (PIM-SSBIDIR - <xref target="pim-ssbidir"/>) for routing multicast traffic inside the home, and PIM Border Proxies (<xref target="pim-border-proxy"/>) for subscribing on all uplink interfaces. Two new HNCP TLVs are defined. One is used in the Rendez-vous Point Address (RPA) and Proxy Controller election process, the other is used for advertising PIM Border Proxies. In addition, PIM-SSBIDIR behavior is slightly modified on the RP Link allowing the Proxy Controller, connected on the RP Link, to aquire the home-wide subscription state.</t>
+    <t>The solution makes use of the Source-Specific Bidirectional variant of the Protocol Independent Multicast routing protocol (PIM-SSBIDIR - <xref target="pim-ssbidir"/>) for routing multicast traffic inside the home, and PIM Border Proxies (<xref target="pim-border-proxy"/>) for subscribing on all uplink interfaces. Two new HNCP TLVs are defined. One is used in the Rendezvous Point Address (RPA) and Proxy Controller election process, the other is used for advertising PIM Border Proxies. In addition, PIM-SSBIDIR behavior is slightly modified on the RP Link allowing the Proxy Controller, connected on the RP Link, to acquire the home-wide subscription state.</t>
     
     <t>This document specifies a functional solution enabling multicast routing in multi-homed home networks. Inputs regarding other possibilities are very welcome and expected, so the best design may be adopted.</t>
 </section>
 
 
 <section title="Problem Analysis">
-    <t>Current home networks usualy consist of a single link and therefore support link-local multicast using MLDv2 <xref target="RFC3810"/> or IGMPv3 <xref target="RFC3376"/> for both all-source (ASM) and source-specifc (SSM) multicast. Future home networks (<xref target="I-D.ietf-homenet-arch"/>) will consist of multiple links, which means multicast routing will be required.</t>
+    <t>Current home networks usually consist of a single link and therefore support link-local multicast using MLDv2 <xref target="RFC3810"/> or IGMPv3 <xref target="RFC3376"/> for both all-source (ASM) and source-specific (SSM) multicast. Future home networks (<xref target="I-D.ietf-homenet-arch"/>) will consist of multiple links, which means multicast routing will be required.</t>
     
     <t>This section discusses home network requirements and problems related to multicast routing.</t>
     
@@ -64,12 +64,12 @@
             
             <list style="hanging" hangIndent="6">
                 <t hangText="In-home traffic:">Devices inside the home should be able to send and receive multicast traffic originated inside the home.</t>
-                <t hangText="ISP to Home trafic:">Devices inside the home should be able to receive multicast traffic coming from an ISP.</t>
+                <t hangText="ISP to Home traffic:">Devices inside the home should be able to receive multicast traffic coming from an ISP.</t>
                 <t hangText="Home to ISP traffic:">Although traffic originated inside the home MUST NOT be forwarded on external interfaces by default, it should not be precluded.</t>
             </list>
         </t>
         
-        <t>On top of that, home network environments add the following constraints, defined in the homenet architecture document.</t>
+        <t>On top of that, home network environments add the following constraints, defined in the Homenet architecture document.</t>
         
         <t>
             <list style="hanging" hangIndent="6">
@@ -85,9 +85,9 @@
     </section>
     
     <section title="Specific Problems">
-        <t>Both PIM Bootstrap Mechanism (PIM BSR - <xref target="RFC5059"/>) and the Homenet Configuration Protocol (HNCP - <xref target="I-D.ietf-homenet-hncp"/>) could be used for autoconfiguration purposes. As HNCP support is already required in all Homenet routers, this document proposes to use it instead of its PIM equivalent.</t>
+        <t>Both PIM Bootstrap Mechanism (PIM BSR - <xref target="RFC5059"/>) and the Homenet Configuration Protocol (HNCP - <xref target="I-D.ietf-homenet-hncp"/>) could be used for autoconfiguration purposes. As HNCP support is already required in all homenet routers, this document proposes to use it instead of its PIM equivalent.</t>
         
-        <t>PIM-SM <xref target="RFC4601"/>, PIM-BIDIR <xref target="RFC5015"/> and PIM-SSM were designed to function in single routed domains. Extensions allow multiple domains to be connected one with each other, but they all require specific PIM interactions between the domains, and a non-ambiguous knowledge of the next hop router for any multicast source. Given Homenet constraints, we encounter the two following problems.</t>
+        <t>PIM-SM <xref target="RFC4601"/>, PIM-BIDIR <xref target="RFC5015"/> and PIM-SSM were designed to function in single routed domains. Extensions allow multiple domains to be connected one with each other, but they all require specific PIM interactions between the domains, and a non-ambiguous knowledge of the next hop router for any multicast source. Given homenet constraints, we encounter the two following problems.</t>
         
         <section title="Uplink subscription problem">
             <t>Initially, PIM reacts to two types of events. MLDv2/IGMPv3 subscriptions and multicast traffic origination. As receiving traffic from the ISP requires a subscription to happen first, border routers need some knowledge of the home-wide subscription state. In a single-homed network, the border router could be the RP, but in a multi-homed network, this subscription information must be shared between all border routers.</t>
@@ -104,13 +104,13 @@
 <section title="Homenet Multicast Support Specifications">
     
     <section title="General Requirements">
-        <t>In order to deliver multicast traffic to subscribed devices, all Homenet routers MUST implement PIM-SSBIDIR as well as the specifications presented in the present document.</t>
+        <t>In order to deliver multicast traffic to subscribed devices, all homenet routers MUST implement PIM-SSBIDIR as well as the specifications presented in the present document.</t>
         <t>Whenever the present document doesn't conform to PIM specifications, behavior and configuration values described in this document take precedence.</t>
     </section>
     
     
-    <section title="Rendez-Vous Point Address Election Process">
-        <t>PIM-SSBIDIR and PIM-BIDIR both rely on the mapping between group ranges and Rendez-vous Point Addresses. In PIM-SSBIDIR a rendez-vous point address doesn't need to belong to an actual router but rather identify the Rendez-Vous Point Link. This is still true in the present document, but in addition to the RP Address, HNCP is used to elect a single Proxy Controller, directly connected to the RP Link.</t>
+    <section title="Rendezvous Point Address Election Process">
+        <t>PIM-SSBIDIR and PIM-BIDIR both rely on the mapping between group ranges and Rendezvous Point Addresses. In PIM-SSBIDIR a Rendezvous point address doesn't need to belong to an actual router but rather identify the Rendezvous Point Link. This is still true in the present document, but in addition to the RP Address, HNCP is used to elect a single Proxy Controller, directly connected to the RP Link.</t>
         
         <figure title="PIM RPA Candidate TLV">
             <preamble>In order to elect the RPA and Proxy Controller, the following HNCP TLV is defined.</preamble><artwork>
@@ -129,7 +129,7 @@
             </artwork><postamble></postamble>
         </figure>
         
-        <t>The Rendez-Vous Point Address is chosen among all the advertised PIM RPA Candidate TLVs. The TLV with the highest priority is chosen first. In case of tie, the highest RPA address is preferred. The elected Proxy Controller is the router with the highest router ID advertising the elected PIM RPA Candidate TLV.</t>
+        <t>The Rendezvous Point Address is chosen among all the advertised PIM RPA Candidate TLVs. The TLV with the highest priority is chosen first. In case of tie, the highest RPA address is preferred. The elected Proxy Controller is the router with the highest router ID advertising the elected PIM RPA Candidate TLV.</t>
         
         <t>A router MUST start advertising a PIM RPA Candidate TLV (and thus candidate as Proxy Controller) whenever one of the two following condition is met.
             <list style="symbols">
@@ -179,7 +179,7 @@
     </section>
     
     <section title="PIM-SSBIDIR changes">
-        <t>This section specifies the changes made to PIM-SSBIDIR, required in the Homenet context.</t>
+        <t>This section specifies the changes made to PIM-SSBIDIR, required in the homenet context.</t>
         
         <section title="Router's behavior on the RP Link">
             <t>PIM-SSBIDIR always forwards the multicast traffic toward the RP Link and therefore never sends Join/Prune packets on the RP Link nor requires routers to listen to local subscriptions on the RP Link. But the elected Proxy Controller needs to know the home-wide subscription state. Which is why router's behavior is modified on the RP Link.</t>
