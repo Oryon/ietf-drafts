@@ -3,7 +3,7 @@
 <!DOCTYPE rfc SYSTEM "rfc2629.dtd">
 
 <rfc
-    category="info"
+    category="std"
     ipr="trust200902"
     docName="draft-pfister-homenet-multicast-00"
     >
@@ -228,14 +228,14 @@
         <?rfc include="reference.RFC.3810.xml"?> <!-- MLDv2 -->
         <?rfc include="reference.RFC.3376.xml"?> <!-- IGMPv3 -->
         <?rfc include="reference.I-D.ietf-homenet-hncp.xml"?>
-        <reference anchor="pim-ssbidir">
+        <reference anchor="pim-ssbidir" target="http://tools.ietf.org/html/draft-pfister-pim-ssbidir-00">
             <front>
                 <title>Source Specific support for Bidirectional Protocol Independent Multicast</title>
                 <author><organization>Pierre Pfister</organization></author>
                 <date month="October" year="2014" />
             </front>
         </reference>
-        <reference anchor="pim-border-proxy">
+        <reference anchor="pim-border-proxy" target="http://tools.ietf.org/html/draft-pfister-pim-border-proxy-00">
             <front>
                 <title>Protocol Independent Multicast Border Proxying</title>
                 <author><organization>Pierre Pfister</organization></author>
