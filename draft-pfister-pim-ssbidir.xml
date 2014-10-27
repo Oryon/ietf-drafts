@@ -16,7 +16,7 @@
 <title abbrev="PIM Source-Specific BIDIR">Source Specific support for Bidirectional Protocol Independent Multicast</title>
 
 <author initials="P" surname="Pfister" fullname="Pierre Pfister">
-<organization>Cisco Systems</organization>
+<organization></organization>
 <address>
 <postal>
 <street/>
@@ -65,7 +65,7 @@
         </list>
     </t>
     
-    <t>This extension was designed for multi-homed home networks (<xref target="I-D.ietf-homenet-arch"/> - a typical case in which source-location cannot be determined for ISP-orgininated traffic because of the multiple default routes). PIM-SM using PIM RPF Vectors <xref target="RFC5496"/> could be another alternative, but it is not clear how routers should behave when they receive conflicting RPF vectors. The protocol simplicity was also an important consideration as home routers usualy have little resources and software reliability is utterly important.</t>
+    <t>This extension was designed for multi-homed home networks (<xref target="I-D.ietf-homenet-arch"/> - a typical case in which source-location cannot be determined for ISP-orgininated traffic because of the multiple default routes). PIM-SM using PIM RPF Vectors <xref target="RFC5496"/> could be another alternative, but it is not clear how routers should behave when they receive conflicting RPF vectors. The protocol simplicity was also an important consideration as home routers usualy have little resources and software reliability is utterly important. Inputs from the working group regarding other possible solutions are very welcome.</t>
 </section>
 
 

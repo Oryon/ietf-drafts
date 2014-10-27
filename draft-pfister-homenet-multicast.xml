@@ -16,7 +16,7 @@
 <title abbrev="Homenet Prefixes">Multicast enabled Home Network using PIM-SSBIDIR and HNCP</title>
 
 <author initials="P" surname="Pfister" fullname="Pierre Pfister">
-<organization>Cisco Systems</organization>
+<organization></organization>
 <address>
 <postal>
 <street/>
@@ -35,7 +35,7 @@
 
 <abstract>
 
-<t>This document specifies Homenet routers behavior regarding multicast routing. The proposed solution relies on the Source-Specific Bidirectional variant of the Protocol Independent Multicast routing protocol (PIM-SSBIDIR). HNCP is used to elect the Rendez-vous Point address and a Proxy Controller connected to the Rendez-vous Point Link. Additionally, PIM-SSBIDIR routers behavior is slightly modified on the Rendez-Vous Point Link so that the Proxy Controller may know the home-wide subscription state.</t>
+<t>This document specifies a possible solution enabling multicast routing in a home network. It relies on the Source-Specific Bidirectional variant of the Protocol Independent Multicast routing protocol (PIM-SSBIDIR). HNCP is used to elect the Rendez-vous Point address and a Proxy Controller connected to the Rendez-vous Point Link. Additionally, PIM-SSBIDIR routers behavior is slightly modified on the Rendez-Vous Point Link so that the Proxy Controller may know the home-wide subscription state. Note that this document defines one single working solution to the stated problem: Inputs regarding other possibilities are welcome.</t>
 
 </abstract>
 
@@ -49,6 +49,8 @@
     <t>This document lists the specifities of home networks regarding multicast, the problems resulting from these specificities and tells how Homenet routers must behave in order to enable multicast routing for both in-home and ISP originated traffic in multi-homed environments.</t>
     
     <t>The solution makes use of the Source-Specific Bidirectional variant of the Protocol Independent Multicast routing protocol (PIM-SSBIDIR - <xref target="pim-ssbidir"/>) for routing multicast traffic inside the home, and PIM Border Proxies (<xref target="pim-border-proxy"/>) for subscribing on all uplink interfaces. Two new HNCP TLVs are defined. One is used in the Rendez-vous Point Address (RPA) and Proxy Controller election process, the other is used for advertising PIM Border Proxies. In addition, PIM-SSBIDIR behavior is slightly modified on the RP Link allowing the Proxy Controller, connected on the RP Link, to aquire the home-wide subscription state.</t>
+    
+    <t>This document specifies a functional solution enabling multicast routing in multi-homed home networks. Inputs regarding other possibilities are very welcome and expected, so the best design may be adopted.</t>
 </section>
 
 

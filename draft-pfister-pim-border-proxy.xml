@@ -16,7 +16,7 @@
 <title abbrev="PIM Proxy">Protocol Independent Multicast Border Proxying</title>
 
 <author initials="P" surname="Pfister" fullname="Pierre Pfister">
-<organization>Cisco Systems</organization>
+<organization></organization>
 <address>
 <postal>
 <street/>
@@ -50,7 +50,7 @@
     
     <t>In PIM-SM domains, one possible application of this extension consists in using the Rendez-Vous as a PIM Proxy Controller for all border routers, which in turn reflects network-wide subscription state on domain's external interfaces using MLDv2 <xref target="RFC3810"/> or IGMPv3 <xref target="RFC3376"/>. In PIM-BIDIR domains, the same approach could be used, but wouldn't support Source-Specific multicast. Instead, every router can reflect the local subscription state of links on which it is the Designated Forwarder.</t>
     
-    <t>This extension was designed in order to allow ISP originated traffic to reach subscribed hosts located inside a home network <xref target="I-D.ietf-homenet-arch"/>.</t>
+    <t>This extension was designed in order to allow ISP originated traffic to reach subscribed hosts located inside a home network <xref target="I-D.ietf-homenet-arch"/>. Inputs from the working group regarding other possible solutions enabling multicast routing in home networks are very welcome.</t>
 </section>
 
 <section title="Protocol Specifications">
