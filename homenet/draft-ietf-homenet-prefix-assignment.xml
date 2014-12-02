@@ -210,7 +210,7 @@
                     <list style="symbols">
                         <t>If it is not desired, return.</t>
                         <t>Else if the Backoff Timer is set, return.</t>
-                        <t>Else if the routine was not executed because the Backoff Timer fired, set the Backoff Timer to some random delay between zero and BACKOFF_MAX_DELAY (see <xref target='variables' />) and return.</t>
+                        <t>Else if the routine was not executed because the Backoff Timer fired, set the Backoff Timer to some random delay between ADOPT_MAX_DELAY and BACKOFF_MAX_DELAY (see <xref target='variables' />) and return.</t>
                         <t>Else, continue the execution of the routine.</t>
                     </list>
                     At this point, select a prefix for the new assignment (see <xref target='random' /> for guidance regarding prefix selection). This prefix MUST be included in or be equal to the considered Delegated Prefix and MUST NOT include or be included in any Advertised Prefix. If a suitable prefix is found, use it to create a new Assigned Prefix:
@@ -231,11 +231,11 @@
                 </t>
                 <t>If there is a Current Assignment and either no Best Assignment or a Best Assignment which does not take precedence over the Current Assignment:
                     <list style="symbols">
-                        <t>If the Current Assignment is not valid, destroy it and execute case 1 or 2, depending on whether there is a Best Assignment.</t>
+                        <t>If the Current Assignment is not valid, destroy it and execute case 1 or 2, depending on whether there is a Best Assignment, as not executed because of the Backoff Timer firing.</t>
                         <t>If the Current Assignment is valid and published, do nothing.</t>
                         <t>If the Current Assignment is valid and not published, the node MAY either:
                             <list style="symbols">
-                                <t>Adopt the prefix by cancelling the Apply Timer and set the Backoff Timer to some random delay between zero and BACKOFF_MAX_DELAY (see <xref target='variables' />). In order to avoid renumbering, this behavior IS RECOMMENDED.</t>
+                                <t>Adopt the prefix by cancelling the Apply Timer and set the Backoff Timer to some random delay between 0 and ADOPT_MAX_DELAY (see <xref target='variables' />). In order to avoid renumbering, this behavior IS RECOMMENDED.</t>
                                 <t>Destroy it and execute case 1 in order to create a different assignment.</t>
                             </list>
                         </t>
@@ -365,9 +365,9 @@
 </section>
 
 <section anchor="variables" title="Algorithm Parameters">
-    <t>This document does not provide values for BACKOFF_MAX_DELAY and RANDOM_SET_SIZE. The algorithm ensures convergence and correctness for any chosen values, even when these are different from node to node. They MAY be adjusted depending on the context, providing a tradeoff between convergence time, efficient addressing, low verbosity (through the Flooding Protocol), and low collision probability.</t>
+    <t>This document does not provide values for ADOPT_MAX_DELAY, BACKOFF_MAX_DELAY and RANDOM_SET_SIZE. The algorithm ensures convergence and correctness for any chosen values, even when these are different from node to node. They MAY be adjusted depending on the context, providing a tradeoff between convergence time, efficient addressing, low verbosity (through the Flooding Protocol), and low collision probability.</t>
     
-    <t>BACKOFF_MAX_DELAY represents the maximum backoff time a node may wait before making a new assignment. The greater the BACKOFF_MAX_DELAY, the lower the collision probability and the verbosity, but the longer the convergence time.</t>
+    <t>ADOPT_MAX_DELAY (respectively BACKOFF_MAX_DELAY) represents the maximum backoff time a node may wait before adopting an assignment (respectively making a new assignment). BACKOFF_MAX_DELAY MUST be greater than or equal to ADOPT_MAX_DELAY. The greater ADOPT_MAX_DELAY and (BACKOFF_MAX_DELAY - ADOPT_MAX_DELAY), the lower the collision probability and the verbosity, but the longer the convergence time.</t>
     <t>RANDOM_SET_SIZE represents the desired size of the set a random prefix will be picked from. The greater RANDOM_SET_SIZE, the better the convergence time and the lower the collision probability, but the worse the addressing-space usage efficiency.</t>
 </section>
 
