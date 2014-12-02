@@ -91,7 +91,7 @@
         
         <t hangText="Advertised Prefix: ">A prefix advertised by another node through the Flooding Mechanism. It is associated with an Advertised Prefix Priority and whether it is assigned to a directly connected Shared Link (and which one if any).</t>
         
-        <t hangText="Advertised Prefix Priority: ">All Advertised Prefixes have a priority. Whenever multiple Advertised Prefixes are conflicting (i.e. incorrect with respect to the correctness conditions), all Advertised Prefixes but the one with the greatest priority will eventually be removed. In case of tie, the assignment advertised by the node with the greatest Node ID is kept (others are removed). In order to ensure convergence, the range of priority values MUST have an upper bounded.</t>
+        <t hangText="Advertised Prefix Priority: ">All Advertised Prefixes have a priority. Whenever multiple Advertised Prefixes are conflicting (i.e. incorrect with respect to the correctness conditions), all Advertised Prefixes but the one with the greatest priority will eventually be removed. In case of tie, the assignment advertised by the node with the greatest Node ID is kept (others are removed). In order to ensure convergence, the range of priority values MUST have an upper bound.</t>
         
         <t hangText="Assigned Prefix: ">A prefix included in a Delegated Prefix and assigned to a Shared or Private Link. It represents a local decision to assign a given prefix from a given Delegated Prefix to a given Link. The algorithm ensures that there never is more than one Assigned Prefix per Delegated Prefix and Link pair. When destroyed, an Assigned Prefix is set as not applied, ceases to be advertised, and is removed from the set of Assigned Prefixes.</t>
         
@@ -218,7 +218,7 @@
                         <t>Assigned to the considered Link.</t>
                         <t>Not applied.</t>
                         <t>The Apply Timer set to '2 * Flooding Delay'.</t>
-                        <t>Published with some selected Advertised Prefix Priority (see <xref target='variables' />).</t>
+                        <t>Published with some selected Advertised Prefix Priority.</t>
                     </list>
                 </t>
                 <t>If there is a Best Assignment but no Current Assignment: Cancel the Backoff Timer and use the prefix from the Best Assignment to create a new Assigned Prefix:
@@ -250,6 +250,8 @@
                 </t>
             </list>
         </t>
+        
+        <t>When the prefix assignment algorithm routine requires an assignment to be created or adopted, the chosen Advertised Prefix Priority is unspecified (any value would be valid). The values to be used in such situations MAY be specified by other documents making use of the prefix assignment algorithm or be left as an implementation specific choice.</t>
     </section>
     
     
