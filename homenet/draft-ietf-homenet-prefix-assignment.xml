@@ -89,36 +89,36 @@
     <t>
         This document makes use of the following terminology:
         <list style="hanging">
+            
+            
+            <t hangText="Link: ">An object the distributed algorithm will assign prefixes to. A Node may only assign prefixes to Links it is directly connected to. A Link is either Shared or Private.</t>
+            
+            <t hangText="Private Link: ">A Private Link is an abstract concept defined for the sake of this document. It allows nodes to make assignments for their private use or delegation. For instance, every DHCPv6-PD <xref target='RFC3633' /> client MAY be considered as a different Private Link.</t>
+            
+            <t hangText="Shared Link: ">A Link multiple nodes are connected to. Most of the time, a Shared Link would consist in a multi-access link or point-to-point link, virtual or physical, requiring prefixes to be assigned to.</t>
+            
+            <t hangText="Delegated Prefix: ">A prefix provided to the algorithm and used as a prefix pool for Assigned Prefixes.</t>
+            
+            <t hangText="Node ID: ">A value identifying a given participating node. The set of identifiers MUST be strictly and totally ordered (e.g., alphanumeric order).</t>
+            
+            <t hangText="Flooding Mechanism: ">A mechanism implementing reliable broadcast and used to advertise published Assigned Prefixes.</t>
+            
+            <t hangText="Flooding Delay: ">Optional value provided by the Flooding Mechanism indicating a deterministic or likely upper bound of the information propagation delay.</t>
+            
+            <t hangText="Advertised Prefix: ">A prefix advertised by another node and delivered to the local node by the Flooding Mechanism. It has an Advertised Prefix Priority and, when assigned to a directly connected Shared Link, is associated with a Shared Link.</t>
+            
+            <t hangText="Advertised Prefix Priority: ">A value that defines the priority of an Advertised Prefix received from the Flooding Mechanism or a published Assigned Prefix. Whenever multiple Advertised Prefixes are conflicting, all Advertised Prefixes but the one with the greatest priority will eventually be removed. In case of tie, the assignment advertised by the node with the greatest Node ID is kept and others are removed. In order to ensure convergence, the range of priority values MUST have an upper bound.</t>
+            
+            <t hangText="Assigned Prefix: ">A prefix included in a Delegated Prefix and assigned to a Shared or Private Link. It represents a local decision to assign a given prefix from a given Delegated Prefix to a given Link. The algorithm ensures that there never is more than one Assigned Prefix per Delegated Prefix and Link pair. When destroyed, an Assigned Prefix is set as not applied, ceases to be advertised, and is removed from the set of Assigned Prefixes.</t>
+            
+            <t hangText="Applied (Assigned Prefix): ">When an Assigned Prefix is applied, it MAY be used (e.g., for host configuration, routing protocol configuration, prefix delegation). When not applied, it MUST NOT be used for any other purposes than the prefix assignment algorithm. Each Assigned Prefix is associated with a timer (Apply Timer) used to apply the Assigned Prefix. An Assigned Prefix is unapplied when destroyed.</t>
+            
+            <t hangText="Published (Assigned Prefix): ">The Assigned Prefix is advertised through the Flooding Mechanism as assigned to its associated Link. A published Assigned Prefix MUST have an Advertised Prefix Priority. It will appear as an Advertised Prefix to other nodes, once received through the Flooding Mechanism.</t>
+            
+            <t hangText="Backoff Timer: ">Every Delegated Prefix and Link pair is associated with a timer counting down to zero. It is used to avoid multiple nodes from making colliding assignments by delaying the creation of new Assigned Prefixes or the advertisement of adopted Assigned Prefixes by a random amount of time.</t>
         
-        <t hangText="Advertised Prefix: ">A prefix advertised by another node and delivered to the local node by the Flooding Mechanism. It has an Advertised Prefix Priority and, when assigned to a directly connected Shared Link, is associated with a Shared Link.</t>
-        
-        <t hangText="Advertised Prefix Priority: ">A value that defines the priority of an Advertised Prefix received from the Flooding Mechanism or a published Assigned Prefix. Whenever multiple Advertised Prefixes are conflicting, all Advertised Prefixes but the one with the greatest priority will eventually be removed. In case of tie, the assignment advertised by the node with the greatest Node ID is kept and others are removed. In order to ensure convergence, the range of priority values MUST have an upper bound.</t>
-        
-        <t hangText="Assigned Prefix: ">A prefix included in a Delegated Prefix and assigned to a Shared or Private Link. It represents a local decision to assign a given prefix from a given Delegated Prefix to a given Link. The algorithm ensures that there never is more than one Assigned Prefix per Delegated Prefix and Link pair. When destroyed, an Assigned Prefix is set as not applied, ceases to be advertised, and is removed from the set of Assigned Prefixes.</t>
-        
-        <t hangText="Applied (Assigned Prefix): ">When an Assigned Prefix is applied, it MAY be used (e.g., for host configuration, routing protocol configuration, prefix delegation). When not applied, it MUST NOT be used for any other purposes than the prefix assignment algorithm. Each Assigned Prefix is associated with a timer (Apply Timer) used to apply the Assigned Prefix. An Assigned Prefix is unapplied when destroyed.</t>
-        
-        <t hangText="Published (Assigned Prefix): ">The Assigned Prefix is advertised through the Flooding Mechanism as assigned to its associated Link. A published Assigned Prefix MUST have an Advertised Prefix Priority. It will appear as an Advertised Prefix to other nodes, once received through the Flooding Mechanism.</t>
-        
-        <t hangText="Backoff Timer: ">Every Delegated Prefix and Link pair is associated with a timer counting down to zero. It is used to avoid multiple nodes from making colliding assignments by delaying the creation of new Assigned Prefixes or the advertisement of adopted Assigned Prefixes by a random amount of time.</t>
-        
-        <t hangText="Delegated Prefix: ">A prefix provided to the algorithm and used as a prefix pool for Assigned Prefixes.</t>
-        
-        <t hangText="Flooding Mechanism: ">A mechanism implementing reliable broadcast and used to advertise published Assigned Prefixes.</t>
-        
-        <t hangText="Flooding Delay: ">Optional value provided by the Flooding Mechanism indicating a deterministic or likely upper bound of the information propagation delay.</t>
-        
-        <t hangText="Link: ">An object the distributed algorithm will assign prefixes to. A Node may only assign prefixes to the set of Links it is directly connected to. A Link is either Shared or Private.</t>
-        
-        <t hangText="Private Link: ">A Private Link is an abstract concept defined for the sake of this document. It allows nodes to make assignments for their private use or delegation. For instance, every DHCPv6-PD <xref target='RFC3633' /> client MAY be considered as a different Private Link.</t>
-        
-        <t hangText="Renumbering: ">Event occuring when an Assigned Prefix which was applied is destroyed. It is undesirable as it usually implies reconfiguring routers or hosts.</t>
-        
-        <t hangText="Node ID: ">A value identifying a given participating node. The set of identifiers MUST be strictly and totally ordered (e.g., alphanumeric order).</t>
-        
-        <t hangText="Shared Link: ">A Link multiple nodes are connected to. Most of the time, a Shared Link would consist in a multi-access link or point-to-point link, virtual or physical, requiring prefixes to be assigned to.</t>
-        <!-- The Flooding Mechanism MUST make sure that when a Node advertises a published Assigned Prefix as assigned to a given Shared Link, all other nodes directly connected to the Shared Link know the prefix is assigned to the same given Shared Link.  -->
-        
+            <t hangText="Renumbering: ">Event occuring when an Assigned Prefix which was applied is destroyed. It is undesirable as it usually implies reconfiguring routers or hosts.</t>
+
         </list>
     </t>
     
