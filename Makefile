@@ -1,6 +1,6 @@
 DRAFTS=$(patsubst %.xml,%.html,$(wildcard *.xml))
 
-all: homenet pim
+all: homenet pim 6man
 
 .PHONY: homenet
 homenet:
@@ -9,10 +9,15 @@ homenet:
 .PHONY: pim
 pim:
 	$(MAKE) -f ../Makefile -C pim ids
+	
+.PHONY: 6man
+6man:
+	$(MAKE) -f ../Makefile -C 6man ids
 
 clean:
 	$(MAKE) -f ../Makefile -C homenet ids_clean
 	$(MAKE) -f ../Makefile -C pim ids_clean
+	$(MAKE) -f ../Makefile -C 6man ids_clean
 
 
 #Executed in subdirectories
