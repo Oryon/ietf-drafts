@@ -394,7 +394,7 @@ bool JoinDesired(S,G) {
         </section>
         
         <section anchor="uSGrG" title="Sending (S,G,rpt) Join/Prune in (*,G) messages">
-            <t>Whenever a Join(*,G) message is sent in response to a Prune(*,G), it must include a Prune(S,G,rpt) for every (S,G,rpt) upstream state that is set to Pruned.</t>
+            <t>Whenever a Join(*,G) message is sent in response to a Prune(*,G) or as a periodic message, it must include a Prune(S,G,rpt) for every (S,G,rpt) upstream state that is set to Pruned.</t>
             <t>When sending a periodic Join(*,G), it must include a Prune(S,G,rpt) for every (S,G,rpt) state set to Pruned which Override Timer is not running.</t>
             
             <t>Note that if the message construction is made after processing the Join(*,G) event in the upstream (S,G,rpt) state machine, the first paragraph can be ignored and the second paragraph applied in all cases. That is because the Join(*,G) reception event cancels all (S,G,rpt) Override Timers.</t>
