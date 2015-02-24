@@ -124,32 +124,65 @@
 </section>
 
 <section anchor="host" title="Host Behavior">
-    <t>Hosts implementing this specification MUST behave similarly to type C hosts as specified in <xref target="RFC4191"/>, with the following changes:
+    
+    <t>Hosts implementing this specification MUST behave similarly to type C hosts as specified in <xref target="RFC4191"/>, unless stated otherwise in this section.</t>
+    
+    <t>Hosts implementing this specification MUST use a Routing Table with source address dependent entries. Such entries have a source prefix, a destination prefix, a preference value, a lifetime, an interface and a next-hop router address.</t>
+    
+    <t>When sending a packet, hosts MUST select the next-hop router based on the usual source address dependent routing algorithm, i.e., by picking the matching entry with, by order of precedence:
         <list>
-            <t>
-                When receiving a Source Address Dependent Route Information option, a host MUST look for a routing entry inserted after receiving a Source Address Dependent Route Information option from the same router (based on the source address of the Router Advertisement), on the same link, with the same source prefix and destination prefix.
-                <list>
-                    <t>If no routing entry is found and the Route Lifetime is not null, insert a routing entry with the given source prefix, destination prefix, route preference, having as next-hop the source address of the received Router Advertisement, on the interface receiving the packet. If the Route Lifetime is not infinity, set the routing entry timer to the Route Lifetime value.</t>
-                    <t>If a routing entry is found and the Route Lifetime is not null, cancel the associated timer. If the Route Lifetime is not infinity, set it to the Route Lifetime value. Finally, update the entry preference with the Route Preference value.</t>
-                    <t>If a routing entry is found and the Route Lifetime is null, remove the routing entry.</t>
-                </list>
-            </t>
-            <t>
-                When receiving a Route Information option, a host MUST behave as follows:
-                <list>
-                    <t>If the I bit is set, ignore the option.</t>
-                    <t>Otherwise, act as when receiving a Source Address Dependent Route Information option with source prefix length set to zero.</t>
-                </list>
-            </t>
+            <t>The longest destination address match.</t>
+            <t>The longest source address match.</t>
+            <t>The highest route preference value.</t>
+        </list>
+        In case of a tie, hosts MAY either pick one entry or use load-sharing techniques.
+    </t>
+    
+    <section anchor="rSADRIO" title="Receiving Source Address Dependent Route Information option">
+    
+    <t>
+        When receiving a Source Address Dependent Route Information option, a host MUST look for an existing routing entry with:
+        <list style="numbers">
+            <t>The same source prefix.</t>
+            <t>The same destination prefix.</t>
+            <t>The next-hop router address equal to the source address of the received Router Advertisement.</t>
+            <t>The outgoing interface equal to the interface the Router Advertisement is received on.</t>
         </list>
     </t>
     
-    <t>Hosts MUST implement source address dependent routing. When routing a packet, if multiple entries inserted by the mean of Source Address Dependent Route Information options match with the same source and destination lengths, the entry with the greatest Route Priority MUST be selected. In case of ties, hosts MAY either pick one entry or use load-sharing techniques.</t>
+    <t>If no routing entry is found and the Route Lifetime is not null, insert a routing entry with the given source prefix, destination prefix, route preference, having as next-hop the source address of the received Router Advertisement, on the interface receiving the packet. If the Route Lifetime is not infinity, set the routing entry timer to the Route Lifetime value.</t>
+    <t>If a routing entry is found and the Route Lifetime is not null, cancel the associated timer. If the Route Lifetime is not infinity, set it to the Route Lifetime value. Finally, update the entry preference with the Route Preference value.</t>
+    <t>If a routing entry is found and the Route Lifetime is null, remove the routing entry.</t>
+    
+    </section>
+    
+    <section anchor="rRIO" title="Receiving Route Information option">
+    <t>
+        When receiving a Route Information option, a host MUST behave as follows:
+        <list>
+            <t>If the I bit is set, ignore the option.</t>
+            <t>Otherwise, act as when receiving a Source Address Dependent Route Information option with source prefix length set to zero.</t>
+        </list>
+    </t>
+    </section>
+
 </section>
 
 <section anchor="router" title="Router Behavior">
-    <t>Routers MAY send one or multiple Source Address Dependent Route Information options in their Router Advertisements. Routers MUST NOT send multiple Route Information options with the same Prefix (no matter what the Ignore flag value is) or multiple Source Address Dependent Route Information options with the same Source and Destination Prefixes.</t>
-    <t>The Ignore bit is used to configure hosts implementing this specification differently from other types of hosts (A, B or C). Different combinations will result in different behaviors. For instance, when injecting a source address dependent route is desired, a Source Address Dependent Route Information option is sent in every RA. Depending on the context, a Route Information with the same prefix and the Ignore bit set MAY be sent as well in order to inject a less specific route into type C hosts. Obviously, Source Address Dependent Route Information options can be used to inject non-source dependent routes as well. This technique and the use of the Ignore bit allow type C hosts and hosts implementing this specification to be configured with independent routes.</t>
+    <t>Routers MAY send one or multiple Source Address Dependent Route Information options in their Router Advertisements.</t>
+    
+    <t>Routers MUST NOT send multiple Route Information options with the same Prefix (no matter what the Ignore flag value is) or multiple Source Address Dependent Route Information options with the same Source and Destination Prefixes. Additionaly, routers MUST NOT send a Route Information option with the Ignore bit not set and a Source Address Dependent Route Information with the source length equal to zero if the Prefix from the Route Information option is equal to the Destination Prefix from the Source Address Dependent Route Information option.</t>
+    
+    <t>The Ignore bit is used to configure hosts implementing this specification differently from other types of hosts (A, B or C). Different combinations will result in different behaviors. For instance:
+        <list>
+        <t>
+            When injecting a source address dependent route is desired, a Source Address Dependent Route Information option is sent in every RA. Depending on the context, a Route Information with the same prefix and the Ignore bit set MAY be sent as well in order to inject non source address depentent route into type C hosts. Obviously, Source Address Dependent Route Information options can be used to inject non-source dependent routes as well. This technique and the use of the Ignore bit allow type C hosts and hosts implementing this specification to be configured with independent routes.
+        </t>
+        <t>
+            When injecting a non source address dependent route is desired, the router MAY either use a Route Information option with the Ignore flag not set, in which case type C hosts as well as hosts implementing this specification will be configured, or use a Source Address Dependent Route Information option with a source prefix ::/0, in which case type C hosts will not be configured.
+        </t>
+        </list>
+    </t>
     <t>When a Source Address Dependent Route Information option is removed from the set of advertised options, the router SHOULD send multiple unsolicited Router Advertisements with the Route Lifetime set to zero.</t>
 </section>
 
