@@ -89,7 +89,7 @@
         </list>
         </t>
         
-        <t>Note: The alignment is a bit awkward. I am not sure reserving 24 bits for the purpose of aligning the source prefix would be helpful. The destination prefix can't be aligned neither due to the variable length of the source prefix, unless we add unused bytes in between. Propositions are welcome concerning the best format for this option.</t>
+        <t>Note: The alignment is a bit awkward. I am not sure reserving 24 bits for the purpose of aligning the source prefix would be helpful. The destination prefix cannot be aligned neither due to the variable length of the source prefix, unless we add unused bytes in between. Propositions are welcome concerning the best format for this option.</t>
 </section>
 
 <section anchor="RIOflag" title="Route Information Option ignore flag">
@@ -116,7 +116,7 @@
     
     <t>
         <list style="hanging">
-            <t hangText="I flag:">Ignore flag. When this flag is set, the option MUST be ignored. It MUST be processed as specified in section <xref target="host"/> otherwise.</t>
+            <t hangText="I flag:">Ignore flag. When this flag is set, the option MUST be ignored.</t>
             <t hangText="Other fields:">No changes (see <xref target="RFC4191"/>).</t>
         </list>
     </t>
@@ -173,12 +173,12 @@
 <section anchor="router" title="Router Behavior">
     <t>Routers MAY send one or multiple Source Address Dependent Route Information options in their Router Advertisements.</t>
     
-    <t>Routers MUST NOT send multiple Route Information options with the same Prefix (no matter what the Ignore flag value is) or multiple Source Address Dependent Route Information options with the same Source and Destination Prefixes. Additionaly, routers MUST NOT send a Route Information option with the Ignore bit not set and a Source Address Dependent Route Information with the source length equal to zero if the Prefix from the Route Information option is equal to the Destination Prefix from the Source Address Dependent Route Information option.</t>
+    <t>Routers MUST NOT send multiple Route Information options with the same Prefix (no matter what the Ignore flag value is) or multiple Source Address Dependent Route Information options with the same Source and Destination Prefixes. Additionally, routers MUST NOT send a Route Information option with the Ignore bit not set and a Source Address Dependent Route Information with the source length equal to zero if the Prefix from the Route Information option is equal to the Destination Prefix from the Source Address Dependent Route Information option.</t>
     
     <t>The Ignore bit is used to configure hosts implementing this specification differently from other types of hosts (A, B or C). Different combinations will result in different behaviors. For instance:
         <list>
         <t>
-            When injecting a source address dependent route is desired, a Source Address Dependent Route Information option is sent in every RA. Depending on the context, a Route Information with the same prefix and the Ignore bit set MAY be sent as well in order to inject non source address depentent route into type C hosts. Obviously, Source Address Dependent Route Information options can be used to inject non-source dependent routes as well. This technique and the use of the Ignore bit allow type C hosts and hosts implementing this specification to be configured with independent routes.
+            When injecting a source address dependent route is desired, a Source Address Dependent Route Information option is sent in every RA. Depending on the context, a Route Information with the same prefix and the Ignore bit set MAY be sent as well in order to inject non source address dependent route into type C hosts. Obviously, Source Address Dependent Route Information options can be used to inject non-source dependent routes as well. This technique and the use of the Ignore bit allow type C hosts and hosts implementing this specification to be configured with independent routes.
         </t>
         <t>
             When injecting a non source address dependent route is desired, the router MAY either use a Route Information option with the Ignore flag not set, in which case type C hosts as well as hosts implementing this specification will be configured, or use a Source Address Dependent Route Information option with a source prefix ::/0, in which case type C hosts will not be configured.
@@ -190,7 +190,6 @@
 
 <section anchor="security" title="Security Considerations">
     <t>This document allows routers to configure neighboring hosts with source address dependent routing entries. Based on <xref target="RFC4191"/>, attackers can inject default routes to type A and B hosts as well as destination address dependent routes to type C hosts. The Source Address Dependent Route Information option adds the ability for attackers to inject even more specific routes, making attacks slightly harder to detect.</t>
-    <t>In order to operate securely, router advertisement MUST be authenticated.</t>
 </section>
 
 <section title="IANA Considerations">
