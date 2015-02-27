@@ -89,7 +89,7 @@
         </list>
         </t>
         
-        <t></t>
+        <t>Note: The alignment is a bit awkward. I am not sure reserving 24 bits for the purpose of aligning the source prefix would be helpful. The destination prefix can't be aligned neither due to the variable length of the source prefix, unless we add unused bytes in between. Propositions are welcome concerning the best format for this option.</t>
 </section>
 
 <section anchor="RIOflag" title="Route Information Option ignore flag">
