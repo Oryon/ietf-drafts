@@ -3,7 +3,7 @@
 <!DOCTYPE rfc SYSTEM "rfc2629.dtd">
 
 <rfc ipr="trust200902"
-    docName="draft-ietf-homenet-prefix-assignment-03"
+    docName="draft-ietf-homenet-prefix-assignment-04"
     category="std">
 
 <?rfc toc="yes"?> <?rfc symrefs="yes"?> <?rfc autobreaks="yes"?>
@@ -49,7 +49,7 @@
 </address>
 </author>
 
-<date month="February" year="2015" />
+<date month="March" year="2015" />
 
 <keyword>IPv6</keyword>
 <keyword>Homenet</keyword>
@@ -89,10 +89,11 @@
         This document makes use of the following terminology:
         <list style="hanging">
             
+            <t hangText="Node: ">An entity executing the algorithm specified in this document and able to communicate with other nodes using the Flooding Mechanism.</t>
             
             <t hangText="Link: ">An object the distributed algorithm will assign prefixes to. A Node may only assign prefixes to Links it is directly connected to. A Link is either Shared or Private.</t>
             
-            <t hangText="Private Link: ">A Private Link is an abstract concept defined for the sake of this document. It allows nodes to make assignments for their private use or delegation. For instance, every DHCPv6-PD <xref target='RFC3633' /> client MAY be considered as a different Private Link.</t>
+            <t hangText="Private Link: ">A Private Link is an abstract concept defined for the sake of this document. It allows nodes to make assignments for their private use or delegation. For instance, every DHCPv6-PD <xref target='RFC3633' /> requesting router MAY be considered as a different Private Link.</t>
             
             <t hangText="Shared Link: ">A Link multiple nodes may be connected to. Most of the time, a Shared Link would consist in a multi-access link or point-to-point link, virtual or physical, requiring prefixes to be assigned to.</t>
             
@@ -100,7 +101,7 @@
             
             <t hangText="Node ID: ">A value identifying a given participating node. The set of identifiers MUST be strictly and totally ordered (e.g., using the alphanumeric order).</t>
             
-            <t hangText="Flooding Mechanism: ">A mechanism implementing reliable broadcast and used to advertise published Assigned Prefixes.</t>
+            <t hangText="Flooding Mechanism: ">A mechanism allowing participating nodes to reliably share information with all other participating nodes.</t>
             
             <t hangText="Flooding Delay: ">Value which SHOULD be provided by the Flooding Mechanism indicating a deterministic or likely upper bound of the information propagation delay. When the Flooding Mechanism does not provide a value, it is set to <xref target='variables' >DEFAULT_FLOODING_DELAY</xref>.</t>
             
@@ -127,7 +128,7 @@
 
 <section title="Applicability statement">
     
-    <t>Each node MUST have a set of disjoint Delegated Prefixes. This set MAY change over time and be different from one node to another at some point, but nodes MUST eventually have the same set of disjoint Delegated Prefixes.</t>
+    <t>Each node MUST have a set of disjoint Delegated Prefixes (i.e., which do not include each other). This set MAY change over time and be different from one node to another at some point, but nodes MUST eventually have the same set of disjoint Delegated Prefixes.</t>
     <!-- Otherwise correctness is not ensured -->
     
     <t>Given this set of disjoint Delegated Prefixes, nodes may assign available prefixes from each Delegated Prefix to the Links they are directly connected to. The algorithm ensures that at most one prefix from a given Delegated Prefix is assigned to a given Link.</t>
@@ -167,7 +168,7 @@
             
             <list style="hanging">
                 
-                <t hangText="Current Assignment: ">For a given Delegated Prefix and Link, the Current Assignment is the Assigned Prefix (if any) included in the Delegated Prefix and assigned to the given Link.</t>
+                <t hangText="Current Assignment: ">For a given Delegated Prefix and Link, the Current Assignment is the Assigned Prefix (if any) included in the Delegated Prefix and assigned to the given Link by the node executing the algorithm. At some point in time, Current Assignment from different nodes may differ, but the algorithm ensures that eventually, all nodes directly connected to a Link have the same Current Assignment for any given Delegated Prefix.</t>
                 
                 <t hangText="Precedence: ">An Advertised Prefix takes precedence over an Assigned Prefix if and only if:
                     <list style="symbols">
