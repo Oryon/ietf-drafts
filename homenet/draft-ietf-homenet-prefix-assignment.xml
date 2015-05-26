@@ -103,7 +103,7 @@
 
             <t hangText="Node ID: ">A value identifying a given participating node. The set of identifiers MUST be strictly and totally ordered (e.g., using the alphanumeric order).</t>
 
-            <t hangText="Flooding Delay: ">Value which SHOULD be provided by the Flooding Mechanism indicating a deterministic or likely upper bound of the information propagation delay. When the Flooding Mechanism does not provide a value, it is set to <xref target='variables' >DEFAULT_FLOODING_DELAY</xref>.</t>
+            <t hangText="Flooding Delay: ">Value which MUST be provided by the Flooding Mechanism and SHOULD be a deterministic or likely upper bound of the information propagation delay among participating Nodes.</t>
 
             <t hangText="Advertised Prefix: ">A prefix advertised by another node and delivered to the local node by the Flooding Mechanism. It has an Advertised Prefix Priority and, when assigned to a directly connected Shared Link, is associated with a Shared Link.</t>
 
@@ -184,8 +184,8 @@
         <list style="symbols">
             <t>Provide a way to flood Assigned Prefixes assigned to a directly connected Link along with their respective Advertised Prefix Priority and the Node ID of the node which advertises it.</t>
             <t>Specify whether an Advertised Prefix was assigned to a directly connected Shared Link, and if so, on which one.</t>
+            <t>Provide a Flooding Delay value, which SHOULD represent a deterministic or likely upperbound of the information propagation delay among participating Nodes. Whenever the Flooding Mechanism is unable to adhere to the provided Flooding Delay, renumbering may happen. As such delay often depends on the size of the network, it MAY change over time and MAY be different from one node to another. Furthermore, the process of selecting this value is subject to a tradeoff between convergence speed and lower renumbering probability (e.g. the value 0 may be used when renumering is harmless), and is therefore left out of scope of this document.</t>
         </list>
-        In addition, a Flooding Delay SHOULD be specified and respected in order to avoid renumbering. If not specified, or whenever the Flooding Mechanism is unable adhere to the provided Flooding Delay, renumbering may happen. As such delay often depends on the size of the network, it MAY change over time and MAY be different from one node to another.
     </t>
 
     <t>The algorithm ensures that whenever the Flooding Delay is provided and respected, and in the absence of topology change or Delegated Prefix removal, renumbering only happens when a node deliberately overrides an existing assignment.</t>
@@ -379,8 +379,7 @@
     
     <t>ADOPT_MAX_DELAY (respectively BACKOFF_MAX_DELAY) represents the maximum backoff time a node may wait before adopting an assignment (respectively making a new assignment). BACKOFF_MAX_DELAY MUST be greater than or equal to ADOPT_MAX_DELAY. The greater ADOPT_MAX_DELAY and (BACKOFF_MAX_DELAY - ADOPT_MAX_DELAY), the lower the collision probability and the lesser the amount of control traffic, but the greater the convergence time.</t>
     <t>RANDOM_SET_SIZE represents the desired size of the set a random prefix will be picked from. The greater RANDOM_SET_SIZE, the better the convergence time and the lower the collision probability, but the worse the addressing-space usage efficiency.</t>
-    
-    <t>When the Flooding Mechanism does not provide a Flooding Delay, it is set to DEFAULT_FLOODING_DELAY. As participating nodes do not need to agree on a common Flooding Delay value, this default value MAY be different from one node to another. If the context in which the algorithm is used does not suffer from renumbering, the value 0 MAY be used. Otherwise it depends on the Flooding Mechanism properties and the desired renumbering probability, and is therefore out of scope of this document.</t>
+
 </section>
 
 <section anchor="security" title="Security Considerations">
