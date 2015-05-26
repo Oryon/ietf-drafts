@@ -198,11 +198,11 @@
     
     <t>This section specifies the behavior of nodes implementing the prefix assignment algorithm. The terms 'Current Assignment', 'Precedence', 'Best Assignment' and 'Valid' are used as defined in <xref target="sr-terminology"/>.</t>
     
-    <section anchor="algo" title="Prefix Assignment Algorithm Routine">
-        <t>This section specifies the prefix assignment algorithm routine. It is defined for a given Delegated Prefix and Link pair and may be run either as triggered by the Backoff Timer or as triggered by another event.</t>
+    <section anchor="algo" title="Prefix Assignment Algorithm Subroutine">
+        <t>This section specifies the prefix assignment algorithm subroutine. It is defined for a given Delegated Prefix and Link pair and may be run either as triggered by the Backoff Timer or as triggered by another event.</t>
         
         <t>
-            For a given Delegated Prefix and Link pair, the routine MUST be run as not triggered by the Backoff Timer whenever:
+            For a given Delegated Prefix and Link pair, the subroutine MUST be run as not triggered by the Backoff Timer whenever:
             <list style="symbols">
                 <t>An Advertised Prefix including or included in the considered Delegated Prefix is added or removed.</t>
                 <t>An Assigned Prefix included in the considered Delegated Prefix and associated with a different Link than the considered Link was destroyed, while there is no Current Assignment associated with the given pair. This case MAY be ignored if the creation of a new Assigned Prefix associated with the considered pair is not desired.</t>
@@ -211,22 +211,22 @@
                 <t>The Node ID is modified.</t>
             </list>
             
-            Furthermore, for a given Delegated Prefix and Link pair, the routine MUST be run as triggered by the Backoff Timer whenever:
+            Furthermore, for a given Delegated Prefix and Link pair, the subroutine MUST be run as triggered by the Backoff Timer whenever:
             <list style="symbols">
                 <t>The Backoff Timer associated with the considered Delegated Prefix and Link pair fires while there is no Current Assignment associated with the given pair.</t>
             </list>
         </t>
         
-        <t>When such an event occurs, a node MAY delay the execution of the routine instead of executing it immediately, e.g., while receiving an update from the Flooding Mechanism, or for security reasons (see <xref target='security' />). Even though other events occur in the meantime, the routine MUST be run only once. It is also assumed that, whenever one of these events is the Backoff Timer firing, the routine is executed as triggered by the Backoff Timer.</t>
+        <t>When such an event occurs, a node MAY delay the execution of the subroutine instead of executing it immediately, e.g., while receiving an update from the Flooding Mechanism, or for security reasons (see <xref target='security' />). Even though other events occur in the meantime, the subroutine MUST be run only once. It is also assumed that, whenever one of these events is the Backoff Timer firing, the subroutine is executed as triggered by the Backoff Timer.</t>
         
-        <t>In order to execute the routine for a given Delegated Prefix and Link pair, first look for the Best Assignment and Current Assignment associated with the Delegated Prefix and Link pair, then execute the corresponding case:
+        <t>In order to execute the subroutine for a given Delegated Prefix and Link pair, first look for the Best Assignment and Current Assignment associated with the Delegated Prefix and Link pair, then execute the corresponding case:
             <list style="numbers">
                 <t>If there is no Best Assignment and no Current Assignment: Decide whether the creation of a new assignment for the given Delegated Prefix and Link pair is desired (As any result would be valid, the way the decision is made is out of the scope of this document) and do the following:
                     <list style="symbols">
-                        <t>If it is not desired, stop the execution of the routine.</t>
-                        <t>Else if the Backoff Timer is running, stop the execution of the routine.</t>
-                        <t>Else if the routine was not executed as triggered by the Backoff Timer, set the Backoff Timer to some random delay between ADOPT_MAX_DELAY and BACKOFF_MAX_DELAY (see <xref target='variables' />) and stop the execution of the routine.</t>
-                        <t>Else, continue the execution of the routine.</t>
+                        <t>If it is not desired, stop the execution of the subroutine.</t>
+                        <t>Else if the Backoff Timer is running, stop the execution of the subroutine.</t>
+                        <t>Else if the subroutine was not executed as triggered by the Backoff Timer, set the Backoff Timer to some random delay between ADOPT_MAX_DELAY and BACKOFF_MAX_DELAY (see <xref target='variables' />) and stop the execution of the subroutine.</t>
+                        <t>Else, continue the execution of the subroutine.</t>
                     </list>
                     Select a prefix for the new assignment (see <xref target='random' /> for guidance regarding prefix selection). This prefix MUST be included in or be equal to the considered Delegated Prefix and MUST NOT include or be included in any Advertised Prefix. If a suitable prefix is found, use it to create a new Assigned Prefix:
                     <list style="symbols">
@@ -246,8 +246,8 @@
                 </t>
                 <t>If there is a Current Assignment but no Best Assignment:
                     <list style="symbols">
-                        <t>If the Current Assignment is not valid, destroy it, and execute the routine again, as not triggered by the Backoff Timer.</t>
-                        <t>If the Current Assignment is valid and published, stop the execution of the routine.</t>
+                        <t>If the Current Assignment is not valid, destroy it, and execute the subroutine again, as not triggered by the Backoff Timer.</t>
+                        <t>If the Current Assignment is valid and published, stop the execution of the subroutine.</t>
                         <t>If the Current Assignment is valid and not published, the node MUST either:
                             <list style="symbols">
                                 <t>Adopt the prefix by cancelling the Apply Timer and set the Backoff Timer to some random delay between 0 and ADOPT_MAX_DELAY (see <xref target='variables' />). This procedure is used to avoid renumbering when the node advertising the prefix left the Shared Link.</t>
@@ -266,9 +266,9 @@
             </list>
         </t>
         
-        <t>When the prefix assignment algorithm routine requires an assignment to be created or adopted, any Advertised Prefix Priority value can be used. Other documents MAY provide restrictions over this value depending on the context the algorithm is operating in, or leave it as implementation-specific.</t>
+        <t>When the prefix assignment algorithm subroutine requires an assignment to be created or adopted, any Advertised Prefix Priority value can be used. Other documents MAY provide restrictions over this value depending on the context the algorithm is operating in, or leave it as implementation-specific.</t>
         
-        <t>When the prefix assignment algorithm routine requires an assignment to be created or adopted, the chosen Advertised Prefix Priority is unspecified (any value would be valid). The values to be used in such situations MAY be specified by other documents making use of the prefix assignment algorithm or be left as an implementation specific choice.</t>
+        <t>When the prefix assignment algorithm subroutine requires an assignment to be created or adopted, the chosen Advertised Prefix Priority is unspecified (any value would be valid). The values to be used in such situations MAY be specified by other documents making use of the prefix assignment algorithm or be left as an implementation specific choice.</t>
     </section>
     
     
@@ -291,7 +291,7 @@
                         <t>The chosen Advertised Prefix Priority for the new Assigned Prefix SHOULD be greater than all priorities from the destroyed Assigned Prefixes. If not, simple topologies with only two nodes may not converge. Nodes which do not respect this rule MUST implement a mechanism which detects whether the distributed algorithm does not converge and, whenever this would happen, stop creating overriding Assigned Prefixes which do not adhere to this rule. The specifications for such safety procedures are out of the scope of this document.</t>
                     </list>
                 </t>
-                <t hangText="Removing an Assigned Prefix: ">A node MAY destroy any Assigned Prefix which is published. Such an event reflects the desire from a node to not assign a prefix from a given Delegated Prefix to a given Link anymore. In order to ensure algorithm convergence, such procedure MUST NOT be executed unless there was a change in the node configuration. Furthermore, whenever an Assigned Prefix is destroyed this way, the prefix assignment algorithm routine MUST be run for the Delegated Prefix and Link pair associated with the deleted Assigned Prefix.</t>
+                <t hangText="Removing an Assigned Prefix: ">A node MAY destroy any Assigned Prefix which is published. Such an event reflects the desire from a node to not assign a prefix from a given Delegated Prefix to a given Link anymore. In order to ensure algorithm convergence, such procedure MUST NOT be executed unless there was a change in the node configuration. Furthermore, whenever an Assigned Prefix is destroyed this way, the prefix assignment algorithm subroutine MUST be run for the Delegated Prefix and Link pair associated with the deleted Assigned Prefix.</t>
             </list>
         
         </t>
@@ -313,7 +313,7 @@
 </section>
 
 <section anchor="random" title="Prefix Selection Considerations">
-    <t>When the prefix assignment algorithm routine specified in <xref target='algo' /> requires a new prefix to be selected, the prefix MUST be selected either:
+    <t>When the prefix assignment algorithm subroutine specified in <xref target='algo' /> requires a new prefix to be selected, the prefix MUST be selected either:
             <list style="symbols">
                 <t>Among prefixes included in the considered Delegated Prefix which were previously assigned and applied on the considered Link. For that purpose, Applied Prefixes may be stored in stable storage along with their associated Link.</t>
                 <t>Randomly, picked in a set of at least RANDOM_SET_SIZE (see <xref target='variables' />) prefixes included in the considered Delegated Prefix and not including or included in any Assigned or Advertised Prefix. If less than RANDOM_SET_SIZE candidates are found, the prefix MUST be picked among all candidates.</t>
@@ -399,7 +399,7 @@
             <t>An attacker able to publish Advertised Prefixes using a Node ID used by another node may prevent the correctness and convergence of the execution.</t>
         </list>
     </t>
-    <t>Whenever the security of the Flooding Mechanism and Node ID assignment mechanism could not be ensured, the convergence of the execution may be prevented. In environments where such attacks may be performed, the execution of the prefix assignment algorithm routine SHOULD be rate limited, as specified in <xref target='algo' />.</t>
+    <t>Whenever the security of the Flooding Mechanism and Node ID assignment mechanism could not be ensured, the convergence of the execution may be prevented. In environments where such attacks may be performed, the execution of the prefix assignment algorithm subroutine SHOULD be rate limited, as specified in <xref target='algo' />.</t>
 </section>
 
 <section title="IANA Considerations">
@@ -440,7 +440,7 @@
         In order to ensure the convergence of the execution, the Assigned Prefix Priority MUST be an increasing function (not necessarily strictly) of the configuration rule priority (i.e., the greater is the configuration rule priority, the greater the Assigned Prefix Priority must be).
     </t>
     <t>Each Assigned Prefix is associated with a rule priority. Assigned Prefixes which are created as specified in <xref target='algo' /> are given a rule priority of 0.</t>
-    <t>Whenever the configuration is changed or the prefix assignment algorithm routine is run: For each Link/Delegated Prefix pair, look for the configuration rule with the highest configuration rule priority such that:
+    <t>Whenever the configuration is changed or the prefix assignment algorithm subroutine is run: For each Link/Delegated Prefix pair, look for the configuration rule with the highest configuration rule priority such that:
         <list style="symbols">
             <t>The prefix specified in the configuration rule is included in the considered Delegated Prefix.</t>
             <t>The Link specified in the configuration rule is the considered Link.</t>
