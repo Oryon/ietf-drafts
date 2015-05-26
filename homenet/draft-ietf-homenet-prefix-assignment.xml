@@ -199,10 +199,10 @@
     <t>This section specifies the behavior of nodes implementing the prefix assignment algorithm. The terms 'Current Assignment', 'Precedence', 'Best Assignment' and 'Valid' are used as defined in <xref target="sr-terminology"/>.</t>
     
     <section anchor="algo" title="Prefix Assignment Algorithm Subroutine">
-        <t>This section specifies the prefix assignment algorithm subroutine. It is defined for a given Delegated Prefix and Link pair and may be run either as triggered by the Backoff Timer or as triggered by another event.</t>
+        <t>This section specifies the prefix assignment algorithm subroutine. It is defined for a given Delegated Prefix and Link pair and takes the BackoffTriggered boolean as parameter (indicating whether the subroutine execution was triggered by the Backoff Timer or by another event).</t>
         
         <t>
-            For a given Delegated Prefix and Link pair, the subroutine MUST be run as not triggered by the Backoff Timer whenever:
+            For a given Delegated Prefix and Link pair, the subroutine MUST be run with the BackoffTriggered boolean set to false whenever:
             <list style="symbols">
                 <t>An Advertised Prefix including or included in the considered Delegated Prefix is added or removed.</t>
                 <t>An Assigned Prefix included in the considered Delegated Prefix and associated with a different Link than the considered Link was destroyed, while there is no Current Assignment associated with the given pair. This case MAY be ignored if the creation of a new Assigned Prefix associated with the considered pair is not desired.</t>
@@ -211,13 +211,13 @@
                 <t>The Node ID is modified.</t>
             </list>
             
-            Furthermore, for a given Delegated Prefix and Link pair, the subroutine MUST be run as triggered by the Backoff Timer whenever:
+            Furthermore, for a given Delegated Prefix and Link pair, the subroutine MUST be run with the BackoffTriggered boolean set to true whenever:
             <list style="symbols">
                 <t>The Backoff Timer associated with the considered Delegated Prefix and Link pair fires while there is no Current Assignment associated with the given pair.</t>
             </list>
         </t>
         
-        <t>When such an event occurs, a node MAY delay the execution of the subroutine instead of executing it immediately, e.g., while receiving an update from the Flooding Mechanism, or for security reasons (see <xref target='security' />). Even though other events occur in the meantime, the subroutine MUST be run only once. It is also assumed that, whenever one of these events is the Backoff Timer firing, the subroutine is executed as triggered by the Backoff Timer.</t>
+        <t>When such an event occurs, a node MAY delay the execution of the subroutine instead of executing it immediately, e.g., while receiving an update from the Flooding Mechanism, or for security reasons (see <xref target='security' />). Even though other events occur in the meantime, the subroutine MUST be run only once. It is also assumed that, whenever one of these events is the Backoff Timer firing, the subroutine is executed with the BackoffTriggered boolean set to true.</t>
         
         <t>In order to execute the subroutine for a given Delegated Prefix and Link pair, first look for the Best Assignment and Current Assignment associated with the Delegated Prefix and Link pair, then execute the corresponding case:
             <list style="numbers">
@@ -225,7 +225,7 @@
                     <list style="symbols">
                         <t>If it is not desired, stop the execution of the subroutine.</t>
                         <t>Else if the Backoff Timer is running, stop the execution of the subroutine.</t>
-                        <t>Else if the subroutine was not executed as triggered by the Backoff Timer, set the Backoff Timer to some random delay between ADOPT_MAX_DELAY and BACKOFF_MAX_DELAY (see <xref target='variables' />) and stop the execution of the subroutine.</t>
+                        <t>Else if the BackoffTriggered boolean is set to false, set the Backoff Timer to some random delay between ADOPT_MAX_DELAY and BACKOFF_MAX_DELAY (see <xref target='variables' />) and stop the execution of the subroutine.</t>
                         <t>Else, continue the execution of the subroutine.</t>
                     </list>
                     Select a prefix for the new assignment (see <xref target='random' /> for guidance regarding prefix selection). This prefix MUST be included in or be equal to the considered Delegated Prefix and MUST NOT include or be included in any Advertised Prefix. If a suitable prefix is found, use it to create a new Assigned Prefix:
@@ -246,7 +246,7 @@
                 </t>
                 <t>If there is a Current Assignment but no Best Assignment:
                     <list style="symbols">
-                        <t>If the Current Assignment is not valid, destroy it, and execute the subroutine again, as not triggered by the Backoff Timer.</t>
+                        <t>If the Current Assignment is not valid, destroy it, and execute the subroutine again with the BackoffTriggered boolean set to false.</t>
                         <t>If the Current Assignment is valid and published, stop the execution of the subroutine.</t>
                         <t>If the Current Assignment is valid and not published, the node MUST either:
                             <list style="symbols">
