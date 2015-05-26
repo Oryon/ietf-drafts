@@ -86,47 +86,82 @@
         and "SHOULD", are to be interpreted as described in <xref target='RFC2119' />.</t>
     
     <t>
-        This document makes use of the following terminology:
+        This document makes use of the following terminology. The ordering of terms here is to avoid forward references so a reader may read the section linearly and understand the definitions before reading the rest of the document.
         <list style="hanging">
             
             <t hangText="Node: ">An entity executing the algorithm specified in this document and able to communicate with other nodes using the Flooding Mechanism.</t>
-            
-            <t hangText="Link: ">An object the distributed algorithm will assign prefixes to. A Node may only assign prefixes to Links it is directly connected to. A Link is either Shared or Private.</t>
-            
-            <t hangText="Private Link: ">A Private Link is an abstract concept defined for the sake of this document. It allows nodes to make assignments for their private use or delegation. For instance, every DHCPv6-PD <xref target='RFC3633' /> requesting router MAY be considered as a different Private Link.</t>
-            
-            <t hangText="Shared Link: ">A Link multiple nodes may be connected to. Most of the time, a Shared Link is a multi-access link or point-to-point link, virtual or physical, requiring prefixes to be assigned to it.</t>
-            
-            <t hangText="Delegated Prefix: ">A prefix provided to the algorithm and used as a prefix pool for Assigned Prefixes.</t>
-            
-            <t hangText="Node ID: ">A value identifying a given participating node. The set of identifiers MUST be strictly and totally ordered (e.g., using the alphanumeric order).</t>
-            
+
             <t hangText="Flooding Mechanism: ">A mechanism allowing participating nodes to reliably share information with all other participating nodes.</t>
-            
+
+            <t hangText="Link: ">An object the distributed algorithm will assign prefixes to. A Node may only assign prefixes to Links it is directly connected to. A Link is either Shared or Private.</t>
+
+            <t hangText="Shared Link: ">A Link multiple nodes may be connected to. Most of the time, a Shared Link is a multi-access link or point-to-point link, virtual or physical, requiring prefixes to be assigned to it.</t>
+
+            <t hangText="Private Link: ">A Private Link is an abstract concept defined for the sake of this document. It allows nodes to make assignments for their private use or delegation. For instance, every DHCPv6-PD <xref target='RFC3633' /> requesting router MAY be considered as a different Private Link.</t>
+
+            <t hangText="Delegated Prefix: ">A prefix provided to the algorithm and used as a prefix pool for Assigned Prefixes.</t>
+
+            <t hangText="Node ID: ">A value identifying a given participating node. The set of identifiers MUST be strictly and totally ordered (e.g., using the alphanumeric order).</t>
+
             <t hangText="Flooding Delay: ">Value which SHOULD be provided by the Flooding Mechanism indicating a deterministic or likely upper bound of the information propagation delay. When the Flooding Mechanism does not provide a value, it is set to <xref target='variables' >DEFAULT_FLOODING_DELAY</xref>.</t>
-            
+
             <t hangText="Advertised Prefix: ">A prefix advertised by another node and delivered to the local node by the Flooding Mechanism. It has an Advertised Prefix Priority and, when assigned to a directly connected Shared Link, is associated with a Shared Link.</t>
-            
+
             <t hangText="Advertised Prefix Priority: ">A value that defines the priority of an Advertised Prefix received from the Flooding Mechanism or a published Assigned Prefix. Whenever multiple Advertised Prefixes are conflicting, all Advertised Prefixes but the one with the greatest priority will eventually be removed. In case of tie, the assignment advertised by the node with the greatest Node ID is kept and others are removed. In order to ensure convergence, the range of priority values MUST have an upper bound.</t>
-            
+
             <t hangText="Assigned Prefix: ">A prefix included in a Delegated Prefix and assigned to a Shared or Private Link. It represents a local decision to assign a given prefix from a given Delegated Prefix to a given Link. The algorithm ensures that there is never more than one Assigned Prefix per Delegated Prefix and Link pair. When destroyed, an Assigned Prefix is set as not applied, ceases to be advertised, and is removed from the set of Assigned Prefixes.</t>
-            
+
             <t hangText="Applied (Assigned Prefix): ">When an Assigned Prefix is applied, it MAY be used (e.g., for host configuration, routing protocol configuration, prefix delegation). When not applied, it MUST NOT be used for any other purposes than the prefix assignment algorithm. Each Assigned Prefix is associated with a timer (Apply Timer) used to apply the Assigned Prefix. An Assigned Prefix is unapplied when destroyed.</t>
-            
+
             <t hangText="Published (Assigned Prefix): ">The Assigned Prefix is advertised through the Flooding Mechanism as assigned to its associated Link. A published Assigned Prefix MUST have an Advertised Prefix Priority. It will appear as an Advertised Prefix to other nodes, once received through the Flooding Mechanism.</t>
-            
+
             <t hangText="Prefix Adoption: ">When an Advertised Prefix which does not conflict with any other Advertised Prefix or published Assigned Prefix stops being advertised, any other node connected to the same Link MAY, after some random delay, start advertising the same prefix. This procedure is called adoption and provides seamless assignment transfer from a node to another, e.g., in case of node failure.</t>
-            
+
             <t hangText="Backoff Timer: ">Every Delegated Prefix and Link pair is associated with a timer counting down to zero. It is used to reduce the probability of colliding assignments made by multiple nodes by delaying the creation of new Assigned Prefixes or the advertisement of adopted Assigned Prefixes by a random amount of time.</t>
-        
+
             <t hangText="Renumbering: ">Event occurring when an Assigned Prefix which was applied is destroyed. It is undesirable as it usually implies reconfiguring routers or hosts.</t>
 
         </list>
     </t>
     
+    <section anchor="sr-terminology" title="Subroutine Terminology">
+        <t>Additionally, the execution of the subroutine specified in <xref target="specs"/> makes use of the following terms.
+
+            <list style="hanging">
+
+                <t hangText="Current Assignment: ">For a given Delegated Prefix and Link, the Current Assignment is the Assigned Prefix (if any) included in the Delegated Prefix and assigned to the given Link by the node executing the algorithm. At some point in time, the Current Assignment from different nodes may differ, but the algorithm ensures that eventually, all nodes directly connected to a Shared Link have the same Current Assignment for any given Delegated Prefix.</t>
+
+                <t hangText="Precedence: ">An Advertised Prefix takes precedence over an Assigned Prefix if and only if one of the following conditions is met:
+                    <list style="symbols">
+                        <t>The Assigned Prefix is not published.</t>
+                        <t>The Assigned Prefix is published and the Advertised Prefix Priority from the Advertised Prefix is strictly greater than the Advertised Prefix Priority from the Assigned Prefix.</t>
+                        <t>The Assigned Prefix is published, the priorities are identical, and the Node ID from the node advertising the Advertised Prefix is strictly greater than the local Node ID.</t>
+                    </list>
+                </t>
+
+                <t hangText="Best Assignment: ">For a given Delegated Prefix and Link, the Best Assignment is the Advertised Prefix (if any):
+                    <list style="symbols">
+                        <t>Including or included in the Delegated Prefix.</t>
+                        <t>Assigned on the given Link.</t>
+                        <t>Having the greatest Advertised Prefix Priority among Advertised Prefixes fulfilling the two preceding conditions (and, in case of tie, the prefix advertised by the node with the greatest Node ID among all prefixes with greatest priority).</t>
+                        <t>Taking precedence over the Current Assignment associated with the same Link and Delegated Prefix (if any).</t>
+                    </list>
+                </t>
+
+                <t hangText="Valid (Assigned Prefix): ">An Assigned Prefix is valid if and only if the two following conditions are met:
+                    <list style="symbols">
+                        <t>No Advertised Prefix including or included in the Assigned Prefix takes precedence over the Assigned Prefix.</t>
+                        <t>No Advertised Prefix including or included in the same Delegated Prefix as the Assigned Prefix and assigned to the same Link takes precedence over the Assigned Prefix.</t>
+                    </list>
+                </t>
+            </list>
+
+        </t>
+    </section>
+
 </section>
 
-<section title="Applicability statement">
+<section title="Applicability Statement">
     
     <t>Each node MUST have a set of disjoint Delegated Prefixes (i.e., which do not include each other). This set MAY change over time and be different from one node to another at some point, but nodes MUST eventually have the same set of disjoint Delegated Prefixes.</t>
     <!-- Otherwise correctness is not ensured -->
@@ -159,44 +194,9 @@
     
 </section>
 
-<section title="Algorithm Specification">
+<section anchor="specs" title="Algorithm Specification">
     
-    <t>This section specifies the behavior of nodes implementing the prefix assignment algorithm.</t>
-
-    <section title="Algorithm Terminology">
-        <t>The algorithm makes use of the following terms:
-            
-            <list style="hanging">
-                
-                <t hangText="Current Assignment: ">For a given Delegated Prefix and Link, the Current Assignment is the Assigned Prefix (if any) included in the Delegated Prefix and assigned to the given Link by the node executing the algorithm. At some point in time, the Current Assignment from different nodes may differ, but the algorithm ensures that eventually, all nodes directly connected to a Shared Link have the same Current Assignment for any given Delegated Prefix.</t>
-                
-                <t hangText="Precedence: ">An Advertised Prefix takes precedence over an Assigned Prefix if and only if one of the following conditions is met:
-                    <list style="symbols">
-                        <t>The Assigned Prefix is not published.</t>
-                        <t>The Assigned Prefix is published and the Advertised Prefix Priority from the Advertised Prefix is strictly greater than the Advertised Prefix Priority from the Assigned Prefix.</t>
-                        <t>The Assigned Prefix is published, the priorities are identical, and the Node ID from the node advertising the Advertised Prefix is strictly greater than the local Node ID.</t>
-                    </list>
-                </t>
-                
-                <t hangText="Best Assignment: ">For a given Delegated Prefix and Link, the Best Assignment is the Advertised Prefix (if any):
-                    <list style="symbols">
-                        <t>Including or included in the Delegated Prefix.</t>
-                        <t>Assigned on the given Link.</t>
-                        <t>Having the greatest Advertised Prefix Priority among Advertised Prefixes fulfilling the two preceding conditions (and, in case of tie, the prefix advertised by the node with the greatest Node ID among all prefixes with greatest priority).</t>
-                        <t>Taking precedence over the Current Assignment associated with the same Link and Delegated Prefix (if any).</t>
-                    </list>
-                </t>
-                
-                <t hangText="Valid (Assigned Prefix): ">An Assigned Prefix is valid if and only if the two following conditions are met:
-                    <list style="symbols">
-                        <t>No Advertised Prefix including or included in the Assigned Prefix takes precedence over the Assigned Prefix.</t>
-                        <t>No Advertised Prefix including or included in the same Delegated Prefix as the Assigned Prefix and assigned to the same Link takes precedence over the Assigned Prefix.</t>
-                    </list>
-                </t>
-            </list>
-            
-        </t>
-    </section>
+    <t>This section specifies the behavior of nodes implementing the prefix assignment algorithm. The terms 'Current Assignment', 'Precedence', 'Best Assignment' and 'Valid' are used as defined in <xref target="sr-terminology"/>.</t>
     
     <section anchor="algo" title="Prefix Assignment Algorithm Routine">
         <t>This section specifies the prefix assignment algorithm routine. It is defined for a given Delegated Prefix and Link pair and may be run either as triggered by the Backoff Timer or as triggered by another event.</t>
