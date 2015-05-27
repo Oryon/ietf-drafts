@@ -66,18 +66,18 @@
 
 <section anchor="intro" title="Introduction">
     
-    <t>This document specifies a distributed algorithm for automatic prefix assignment. Given a set of delegated prefixes, nodes may assign available prefixes to links they are directly connected to, or for their private use. The algorithm ensures that the following assertions are eventually true:
+    <t>This document specifies a distributed algorithm for automatic prefix assignment. Given a set of delegated prefixes, nodes may assign available prefixes to links they are directly connected to, or for their private use. The algorithm ensures that the following assertions are satisfied after a finite convergence period:
         <list style="numbers">
             <t>At most one prefix from each delegated prefix is assigned to each link.</t>
-            <t>Assigned prefixes are not included in and do not include other assigned prefixes.</t>
+            <t>Assigned prefixes are non-overlapping (i.e., an assigned prefix never includes another assigned prefix).</t>
             <t>Assigned prefixes do not change in the absence of topology or configuration changes.</t>
         </list>
         In the rest of this document the two first conditions are referred to as the correctness conditions of the algorithm while the third condition is referred to as its convergence condition.
     </t>
     
-    <t>Each assignment has a priority specified by the node making the assignment, allowing for custom assignment policies. When multiple nodes assign different prefixes from the same delegated prefix to the same link, or when multiple nodes assign overlapping prefixes, the assignment with the greatest priority is kept and other assignments are removed.</t>
+    <t>Each assignment has a priority specified by the node making the assignment, allowing for custom assignment policies. When multiple nodes assign different prefixes from the same delegated prefix to the same link, or when multiple nodes assign overlapping prefixes (to the same link or to different links), the assignment with the greatest priority is kept and other assignments are removed.</t>
     
-    <t>The prefix assignment algorithm requires that participating nodes share information through a flooding mechanism. If the flooding mechanism ensures that all messages are propagated to all nodes faster than a given timing upper bound, the algorithm also ensures that all assigned prefixes used for networking operations (e.g., host configuration) remain unchanged, unless another node assigns an overlapping prefix with a higher assignment priority, or the topology changes and renumbering cannot be avoided.</t>
+    <t>The prefix assignment algorithm requires that participating nodes share information through a flooding mechanism. If the flooding mechanism ensures that all messages are propagated to all nodes within a given time window, the algorithm also ensures that all assigned prefixes used for networking operations (e.g., host configuration) remain unchanged, unless another node assigns an overlapping prefix with a higher assignment priority, or the topology changes and renumbering cannot be avoided.</t>
 
 </section>
 
@@ -86,7 +86,7 @@
         and "SHOULD", are to be interpreted as described in <xref target='RFC2119' />.</t>
     
     <t>
-        This document makes use of the following terminology. The ordering of terms here is to avoid forward references so a reader may read the section linearly and understand the definitions before reading the rest of the document.
+        This document makes use of the following terminology. The terms defined here are ordered in such a way as to avoid forward references, and therefore are not sorted alphabetically.
         <list style="hanging">
             
             <t hangText="Node: ">An entity executing the algorithm specified in this document and able to communicate with other nodes using the Flooding Mechanism.</t>
@@ -103,15 +103,15 @@
 
             <t hangText="Node ID: ">A value identifying a given participating node. The set of identifiers MUST be strictly and totally ordered (e.g., using the alphanumeric order).</t>
 
-            <t hangText="Flooding Delay: ">A value which MUST be provided by the Flooding Mechanism and SHOULD be a deterministic or likely upper bound of the information propagation delay among participating Nodes.</t>
+            <t hangText="Flooding Delay: ">A value which MUST be provided by the Flooding Mechanism and SHOULD be a deterministic or likely upper bound on the information propagation delay among participating Nodes.</t>
 
-            <t hangText="Advertised Prefix: ">A prefix advertised by another node and delivered to the local node by the Flooding Mechanism. It has an Advertised Prefix Priority and, when assigned to a directly connected Shared Link, is associated with a Shared Link.</t>
+            <t hangText="Advertised Prefix: ">A prefix advertised by another node and delivered to the local node by the Flooding Mechanism. It has an Advertised Prefix Priority and, when assigned to a directly connected Shared Link, is associated with that Shared Link.</t>
 
             <t hangText="Advertised Prefix Priority: ">A value that defines the priority of an Advertised Prefix received from the Flooding Mechanism or a published Assigned Prefix. Whenever multiple Advertised Prefixes are conflicting (i.e., overlapping or from the same Delegated Prefix and assigned to the same link), all Advertised Prefixes but the one with the greatest priority will eventually be removed. In case of a tie, the assignment advertised by the node with the greatest Node ID is kept and others are removed. In order to ensure convergence, the range of priority values MUST have an upper bound.</t>
 
             <t hangText="Assigned Prefix: ">A prefix included in a Delegated Prefix and assigned to a Shared or Private Link. It represents a local decision to assign a given prefix from a given Delegated Prefix to a given Link. The algorithm ensures that there is never more than one Assigned Prefix per Delegated Prefix and Link pair. When destroyed, an Assigned Prefix is set as not applied, ceases to be advertised, and is removed from the set of Assigned Prefixes.</t>
 
-            <t hangText="Applied (Assigned Prefix): ">When an Assigned Prefix is applied, it MAY be used (e.g., for host configuration, routing protocol configuration, prefix delegation). When not applied, it MUST NOT be used for any other purposes than the prefix assignment algorithm. Each Assigned Prefix is associated with a timer (Apply Timer) used to apply the Assigned Prefix. An Assigned Prefix is unapplied when destroyed.</t>
+            <t hangText="Applied (Assigned Prefix): ">When an Assigned Prefix is applied, it MAY be used (e.g., for host configuration, routing protocol configuration, prefix delegation). When not applied, it MUST NOT be used for any purpose outside of the prefix assignment algorithm. Each Assigned Prefix is associated with a timer (Apply Timer) used to apply the Assigned Prefix. An Assigned Prefix is unapplied when destroyed.</t>
 
             <t hangText="Published (Assigned Prefix): ">The Assigned Prefix is advertised through the Flooding Mechanism as assigned to its associated Link. A published Assigned Prefix MUST have an Advertised Prefix Priority. It will appear as an Advertised Prefix to other nodes, once received through the Flooding Mechanism.</t>
 
@@ -119,13 +119,13 @@
 
             <t hangText="Backoff Timer: ">Every Delegated Prefix and Link pair is associated with a timer counting down to zero. It is used to reduce the probability of colliding assignments made by multiple nodes by delaying the creation of new Assigned Prefixes or the advertisement of adopted Assigned Prefixes by a random amount of time.</t>
 
-            <t hangText="Renumbering: ">Event occurring when an Assigned Prefix which was applied is destroyed. It is undesirable as it usually implies reconfiguring routers or hosts.</t>
+            <t hangText="Renumbering: ">Event occurring when an Assigned Prefix which was applied is destroyed. Renumbering is undesirable as it usually implies reconfiguring routers or hosts.</t>
 
         </list>
     </t>
     
     <section anchor="sr-terminology" title="Subroutine Specific Terminology">
-        <t>Additionally, the execution of the subroutine specified in <xref target="specs"/> makes use of the following terms.
+        <t>In addition to the terms defined in <xref target="terminology"/>, the subroutine specified in <xref target="specs"/> makes use of the following terms.
 
             <list style="hanging">
 
@@ -139,16 +139,16 @@
                     </list>
                 </t>
 
-                <t hangText="Best Assignment: ">For a given Delegated Prefix and Link, the Best Assignment is the Advertised Prefix (if any):
+                <t hangText="Best Assignment: ">For a given Delegated Prefix and Link, the Best Assignment is the unique Advertised Prefix (if any) that:
                     <list style="symbols">
-                        <t>Including or included in the Delegated Prefix (i.e., the Advertised Prefix is a sub-prefix of the Delegated Prefix, or the Delegated Prefix is a sub-prefix of the Advertised Prefix).</t>
-                        <t>Assigned on the given Link.</t>
-                        <t>Having the greatest Advertised Prefix Priority among Advertised Prefixes fulfilling the two preceding conditions (and, in case of a tie, the prefix advertised by the node with the greatest Node ID among all prefixes with greatest priority).</t>
-                        <t>Taking precedence over the Current Assignment associated with the same Link and Delegated Prefix (if any).</t>
+                        <t>Includes or is included in the Delegated Prefix (i.e., the Advertised Prefix is a sub-prefix of the Delegated Prefix, or the Delegated Prefix is a sub-prefix of the Advertised Prefix).</t>
+                        <t>Is assigned on the given Link.</t>
+                        <t>Has the greatest Advertised Prefix Priority among Advertised Prefixes fulfilling the two preceding conditions (and, in case of a tie, the prefix advertised by the node with the greatest Node ID among all prefixes with greatest priority).</t>
+                        <t>Takes precedence over the Current Assignment associated with the same Link and Delegated Prefix (if any).</t>
                     </list>
                 </t>
 
-                <t hangText="Valid (Assigned Prefix): ">An Assigned Prefix is valid if and only if the two following conditions are met:
+                <t hangText="Valid (Assigned Prefix): ">An Assigned Prefix is valid if and only if the following two conditions are met:
                     <list style="symbols">
                         <t>No Advertised Prefix including or included in the Assigned Prefix takes precedence over the Assigned Prefix.</t>
                         <t>No Advertised Prefix including or included in the same Delegated Prefix as the Assigned Prefix and assigned to the same Link takes precedence over the Assigned Prefix.</t>
@@ -163,10 +163,10 @@
 
 <section title="Applicability Statement">
     
-    <t>Each node MUST have a set of disjoint Delegated Prefixes (i.e., which do not include each other). This set MAY change over time and be different from one node to another at some point, but nodes MUST eventually have the same set of disjoint Delegated Prefixes.</t>
+    <t>Each node MUST have a set of non-overlapping Delegated Prefixes (i.e., which do not include each other). This set MAY change over time and be different from one node to another at some point, but nodes MUST eventually have the same set of disjoint Delegated Prefixes.</t>
     <!-- Otherwise correctness is not ensured -->
     
-    <t>Given this set of disjoint Delegated Prefixes, nodes may assign available prefixes from each Delegated Prefix to the Links they are directly connected to. The algorithm ensures that at most one prefix from a given Delegated Prefix is assigned to a given Link.</t>
+    <t>Given this set of disjoint Delegated Prefixes, nodes may assign available prefixes from each Delegated Prefix to the Links they are directly connected to. The algorithm ensures that at most one prefix from a given Delegated Prefix is assigned to any given Link.</t>
     
     <t>The algorithm can be applied to any address space and can be used to manage multiple address spaces simultaneously. For instance, an implementation can make use of IPv4-mapped IPv6 addresses <xref target='RFC4291' /> in order to manage both IPv4 and IPv6 prefix assignment using a single prefix space.</t>
     
@@ -182,13 +182,13 @@
     
     <t>The Flooding Mechanism MUST:
         <list style="symbols">
-            <t>Provide a way to flood Assigned Prefixes assigned to a directly connected Link along with their respective Advertised Prefix Priority and the Node ID of the node which advertises it.</t>
+            <t>Provide a way to flood Assigned Prefixes assigned to a directly connected Link along with their respective Advertised Prefix Priority and the Node ID of the node which is advertising them.</t>
             <t>Specify whether an Advertised Prefix was assigned to a directly connected Shared Link, and if so, on which one.</t>
-            <t>Provide a Flooding Delay value, which SHOULD represent a deterministic or likely upper bound of the information propagation delay among participating Nodes. Whenever the Flooding Mechanism is unable to adhere to the provided Flooding Delay, renumbering may happen. As such delay often depends on the size of the network, it MAY change over time and MAY be different from one node to another. Furthermore, the process of selecting this value is subject to a tradeoff between convergence speed and lower renumbering probability (e.g., the value 0 may be used when renumbering is harmless), and is therefore left out of scope of this document.</t>
+            <t>Provide a Flooding Delay value, which SHOULD represent a deterministic or likely upper bound on the information propagation delay among participating Nodes. Whenever the Flooding Mechanism is unable to adhere to the provided Flooding Delay, renumbering may happen. As such a delay often depends on the size of the network, it MAY change over time and MAY be different from one node to another. Furthermore, the process of selecting this value is subject to a tradeoff between convergence speed and lower renumbering probability (e.g., the value 0 may be used when renumbering is harmless), and is therefore out of scope of this document.</t>
         </list>
     </t>
 
-    <t>The algorithm ensures that whenever the Flooding Delay is provided and respected, and in the absence of topology change or Delegated Prefix removal, renumbering only happens when a node deliberately overrides an existing assignment.</t>
+    <t>The algorithm ensures that whenever the Flooding Delay is provided and respected, and in the absence of any topology change or Delegated Prefix removal, renumbering only happens when a node deliberately overrides an existing assignment.</t>
     
     <t>Each node MUST have a Node ID. Node IDs MAY change over time and be the same on multiple nodes at some point, but each node MUST eventually have a Node ID which is unique among the set of participating nodes.</t>
     
@@ -199,7 +199,7 @@
     <t>This section specifies the behavior of nodes implementing the prefix assignment algorithm. The terms 'Current Assignment', 'Precedence', 'Best Assignment' and 'Valid' are used as defined in <xref target="sr-terminology"/>.</t>
     
     <section anchor="algo" title="Prefix Assignment Algorithm Subroutine">
-        <t>This section specifies the prefix assignment algorithm subroutine. It is defined for a given Delegated Prefix and Link pair and takes the BackoffTriggered boolean as parameter (indicating whether the subroutine execution was triggered by the Backoff Timer or by another event).</t>
+        <t>This section specifies the prefix assignment algorithm subroutine. It is defined for a given Delegated Prefix and Link pair and takes a BackoffTriggered boolean as parameter (indicating whether the subroutine execution was triggered by the Backoff Timer or by another event).</t>
         
         <t>
             For a given Delegated Prefix and Link pair, the subroutine MUST be run with the BackoffTriggered boolean set to false whenever:
@@ -217,7 +217,7 @@
             </list>
         </t>
         
-        <t>When such an event occurs, a node MAY delay the execution of the subroutine instead of executing it immediately, e.g., while receiving an update from the Flooding Mechanism, or for security reasons (see <xref target='security' />). Even though other events occur in the meantime, the subroutine MUST be run only once. It is also assumed that, whenever one of these events is the Backoff Timer firing, the subroutine is executed with the BackoffTriggered boolean set to true.</t>
+        <t>When such an event occurs, a node MAY delay the execution of the subroutine instead of executing it immediately, e.g., while receiving an update from the Flooding Mechanism, or for security reasons (see <xref target='security' />). Even if other events occur in the meantime, the subroutine MUST be run only once. It is also assumed that, whenever one of these events is the Backoff Timer firing, the subroutine is executed with the BackoffTriggered boolean set to true.</t>
         
         <t>In order to execute the subroutine for a given Delegated Prefix and Link pair, first look for the Best Assignment and Current Assignment associated with the Delegated Prefix and Link pair, then execute the corresponding case:
             <list style="numbers">
@@ -290,7 +290,7 @@
                         <t>The chosen Advertised Prefix Priority for the new Assigned Prefix SHOULD be greater than all priorities from the destroyed Assigned Prefixes. If not, simple topologies with only two nodes may not converge. Nodes which do not adhere to this rule MUST implement a mechanism which detects whether the distributed algorithm does not converge and, whenever this would happen, stop creating overriding Assigned Prefixes which do not adhere to this rule. The specifications for such safety procedures are out of the scope of this document.</t>
                     </list>
                 </t>
-                <t hangText="Removing an Assigned Prefix: ">A node MAY destroy any Assigned Prefix which is published. Such an event reflects the desire from a node to not assign a prefix from a given Delegated Prefix to a given Link anymore. In order to ensure algorithm convergence, such procedure MUST NOT be executed unless there was a change in the node configuration. Furthermore, whenever an Assigned Prefix is destroyed this way, the prefix assignment algorithm subroutine MUST be run for the Delegated Prefix and Link pair associated with the deleted Assigned Prefix.</t>
+                <t hangText="Removing an Assigned Prefix: ">A node MAY destroy any Assigned Prefix which is published. Such an event reflects the desire of a node to not assign a prefix from a given Delegated Prefix to a given Link anymore. In order to ensure algorithm convergence, such a procedure MUST NOT be executed unless there was a change in the node configuration. Furthermore, whenever an Assigned Prefix is destroyed in this way, the prefix assignment algorithm subroutine MUST be run for the Delegated Prefix and Link pair associated with the destroyed Assigned Prefix.</t>
             </list>
         
         </t>
@@ -323,7 +323,7 @@
     
     <t>The rest of this section describes a more efficient approach which MAY be applied any time a node needs to pick a prefix for a new assignment. The two following definitions are used:
         <list style="hanging">
-            <t hangText="Available prefix: ">The prefix Prefix/PrefixLength is available if and only if it satisfies the three following conditions:
+            <t hangText="Available prefix: ">The prefix of the form Prefix/PrefixLength is available if and only if it satisfies the three following conditions:
                     <list style="symbols">
                         <t>It is included in the considered Delegated Prefix.</t>
                         <t>It does not include and is not included in any Assigned or Advertised Prefix.</t>
@@ -336,7 +336,7 @@
     
     <t>The procedure described in this section takes the three following criteria into account:
         <list style="hanging">
-            <t hangText="Prefix Stability: ">In some cases, it is desirable that the selected prefix remains the same across executions and reboots. For this purpose, prefixes previously applied on the Link or pseudo-random prefixes generated based on node and Link specific values may be considered.</t>
+            <t hangText="Prefix Stability: ">In some cases, it is desirable that the selected prefix should remain the same across executions and reboots. For this purpose, prefixes previously applied on the Link or pseudo-random prefixes generated based on Node- and Link-specific values may be considered.</t>
             <t hangText="Randomness: ">When no stored or pseudo-random prefix is chosen, a prefix may be randomly picked among RANDOM_SET_SIZE candidates of desired length. If less than RANDOM_SET_SIZE candidates can be found, the prefix is picked among all candidates.</t>
             <t hangText="Addressing-space usage efficiency: ">In the process of assigning prefixes, a small set of badly chosen long prefixes may prevent any shorter prefix from being assigned. For this reason, the set of RANDOM_SET_SIZE candidates is created from available prefixes with longest prefix lengths and, in case of a tie, preferring numerically small prefix values.</t>
         </list>
@@ -346,14 +346,14 @@
         <list style="numbers">
             <t>For each prefix stored in stable storage, check if the prefix is included in or equal to an available prefix. If so, pick that prefix and stop.</t>
             <t>For each prefix length, count the number of available prefixes of the given length.</t>
-            <t>If the desired prefix length was not specified, select one. The available prefixes count computed previously may be used to help picking a prefix length such that:
+            <t>If the desired prefix length was not specified, select one. The available prefixes count computed previously may be used to help pick a prefix length such that:
                     <list style="symbols">
                         <t>There is at least one candidate prefix.</t>
-                        <t>The prefix length is chosen great enough to not exhaust the address space.</t>
+                        <t>The prefix length is chosen large enough to not exhaust the address space.</t>
                     </list>
                 Let N be the chosen prefix length.</t>
             <t>Iterate over available prefixes starting with prefixes of length N down to length 0 and create a set of RANDOM_SET_SIZE candidate prefixes of length exactly N included in or equal to available prefixes. The end goal here is to create a set of RANDOM_SET_SIZE candidate prefixes of length N included in a set of available prefixes of maximized prefix length. In case of a tie, smaller prefix values (as defined by the bit-wise lexicographical order) are preferred.</t>
-            <t>Generate a set of prefixes of desired length, which are pseudo-randomly chosen based on Node and Link specific values. For each pseudo-random prefix, check if the prefix is equal to a candidate prefix. If so, pick that prefix and stop.</t>
+            <t>Generate a set of prefixes of desired length, which are pseudo-randomly chosen based on Node- and Link-specific values. For each pseudo-random prefix, check if the prefix is equal to a candidate prefix. If so, pick that prefix and stop.</t>
             <t>Choose a random prefix from the set of selected candidates.</t>
         </list>
     </t>
@@ -365,12 +365,12 @@
 <section anchor="behavior" title="Implementation Capabilities and Node Behavior">
     <t>Implementations of the prefix assignment algorithm may vary from very basic to highly customizable, enabling different types of fully interoperable behaviors. The three following behaviors are given as examples:
         <list style="hanging">
-            <t hangText="Listener: ">The node only acts upon assignments made by other nodes, i.e, it never creates new assignments nor adopts existing ones. Such behavior does not require the implementation of the considerations specified in <xref target='random' /> or <xref target='override' />. The node never checks existing assignments validity, which makes this behavior particularly suited to lightweight devices which can rely on more capable neighbors to make assignments on directly connected Shared Links.</t>
+            <t hangText="Listener: ">The node only acts upon assignments made by other nodes, i.e, it never creates new assignments nor adopts existing ones. Such behavior does not require the implementation of the considerations specified in <xref target='random' /> or <xref target='override' />. The node never checks the validity of existing assignments, which makes this behavior particularly suited to lightweight devices which can rely on more capable neighbors to make assignments on directly connected Shared Links.</t>
             <t hangText="Basic: ">The node is capable of assigning new prefixes or adopting prefixes which do not conflict with any other existing assignment. Such behavior does not require the implementation of the considerations specified in <xref target='override' />. It is suited to situations where there is no preference over which prefix should be assigned to which Link, and there is no priority between different Links.</t>
-            <t hangText="Advanced: ">The node is capable of assigning new prefixes, adopting existing ones, making overriding assignments and destroying existing ones. Such behavior requires the implementation of the considerations specified in <xref target='random' /> and <xref target='override' />. It is suited when the administrator desires some particular prefix to be assigned on a given Link, or some Links to be assigned prefixes with a greater priority.</t>
+            <t hangText="Advanced: ">The node is capable of assigning new prefixes, adopting existing ones, making overriding assignments and destroying existing ones. Such behavior requires the implementation of the considerations specified in <xref target='random' /> and <xref target='override' />. It is suited when the administrator desires some particular prefix to be assigned on a given Link, or some Link to be assigned prefixes with a greater priority when there are not enough prefixes available for all Links.</t>
         </list>
 
-        Note that if all Nodes directly connected to some Link are listener Nodes or none of these Nodes are willing to make an assignment from a given Delegated Prefix to the given Link, no prefix from the given Delegated Prefix will ever be assigned to the Link (and such existing prefixes will be removed). This situation may be detected by watching whether no prefix from a given Delegated Prefix has been assigned to the Link for a given time equal to BACKOFF_MAX_DELAY plus the Flooding Delay.
+        Note that if all Nodes directly connected to some Link are listener Nodes or none of these Nodes are willing to make an assignment from a given Delegated Prefix to the given Link, no prefix from the given Delegated Prefix will ever be assigned to the Link (and such existing prefixes will be removed). This situation may be detected by watching whether no prefix from a given Delegated Prefix has been assigned to the Link for longer than BACKOFF_MAX_DELAY plus the Flooding Delay.
     </t>
     
 </section>
@@ -390,15 +390,15 @@
                 <list style="symbols">
                     <t>Publish a single overriding assignment for a whole Delegated Prefix or for the whole address space, thus preventing any node from assigning prefixes to Links.</t>
                     <t>Quickly publish and remove Advertised Prefixes, generating traffic at the Flooding Mechanism layer and causing multiple executions of the prefix assignment algorithm in all participating nodes.</t>
-                    <t>Publish and remove Advertised Prefixes in order to prevent the convergence of the execution.</t>
+                    <t>Publish and remove Advertised Prefixes in order to prevent the convergence of the algorithm.</t>
                 </list>
             </t>
-            <t>An attacker able to prevent other nodes from accessing a portion or the whole set of Advertised Prefixes may compromise the correctness of the execution.</t>
-            <t>An attacker able to cause repetitive Node ID changes may induce traffic generation from the Flooding Mechanism and multiple executions of the prefix assignment algorithm in all participating nodes.</t>
-            <t>An attacker able to publish Advertised Prefixes using a Node ID used by another node may prevent the correctness and convergence of the execution.</t>
+            <t>An attacker able to prevent other nodes from accessing a portion or the whole set of Advertised Prefixes may compromise the correctness of the algorithm.</t>
+            <t>An attacker able to cause repetitive Node ID changes may cause traffic to be generated in the Flooding Mechanism and multiple executions of the prefix assignment algorithm in all participating nodes.</t>
+            <t>An attacker able to publish Advertised Prefixes using a Node ID used by another node may prevent the correctness and convergence of the algorithm or cause the result to violate the correctness conditions.</t>
         </list>
     </t>
-    <t>Whenever the security of the Flooding Mechanism and Node ID assignment mechanism could not be ensured, the convergence of the execution may be prevented. In environments where such attacks may be performed, the execution of the prefix assignment algorithm subroutine SHOULD be rate limited, as specified in <xref target='algo' />.</t>
+    <t>Whenever the security of the Flooding Mechanism and Node ID assignment mechanism cannot be ensured, the convergence of the algorithm may be prevented. In environments where such attacks may be performed, the execution of the prefix assignment algorithm subroutine SHOULD be rate limited, as specified in <xref target='algo' />.</t>
 </section>
 
 <section title="IANA Considerations">
@@ -436,7 +436,7 @@
             <t>A rule priority (0 if the rule may not override existing Advertised Prefixes).</t>
         </list>
         
-        In order to ensure the convergence of the execution, the Assigned Prefix Priority MUST be an increasing function (not necessarily strictly) of the configuration rule priority (i.e., the greater is the configuration rule priority, the greater the Assigned Prefix Priority must be).
+        In order to ensure the convergence of the algorithm, the Assigned Prefix Priority MUST be an increasing function (not necessarily strictly) of the configuration rule priority (i.e., the greater is the configuration rule priority, the greater the Assigned Prefix Priority must be).
     </t>
     <t>Each Assigned Prefix is associated with a rule priority. Assigned Prefixes which are created as specified in <xref target='algo' /> are given a rule priority of 0.</t>
     <t>Whenever the configuration is changed or the prefix assignment algorithm subroutine is run: For each Link/Delegated Prefix pair, look for the configuration rule with the greatest configuration rule priority such that:
@@ -449,7 +449,7 @@
         If a rule is found, a new Assigned Prefix is created based on that rule as specified in <xref target='override' />. The new Assigned Prefix is associated with the Advertised Prefix Priority and the rule priority specified in the considered configuration rule.
     </t>
     
-    <t>Note that the use of rule priorities ensures the convergence of the execution.</t>
+    <t>Note that the use of rule priorities ensures the convergence of the algorithm.</t>
 </section>
 
 </back>
