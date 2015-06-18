@@ -3,7 +3,7 @@
 <!DOCTYPE rfc SYSTEM "rfc2629.dtd">
 
 <rfc ipr="trust200902"
-    docName="draft-ietf-homenet-prefix-assignment-06"
+    docName="draft-ietf-homenet-prefix-assignment-07"
     category="std">
 
 <?rfc toc="yes"?> <?rfc symrefs="yes"?> <?rfc autobreaks="yes"?>
@@ -49,7 +49,7 @@
 </address>
 </author>
 
-<date month="May" year="2015" />
+<date month="June" year="2015" />
 
 <keyword>IPv6</keyword>
 <keyword>Homenet</keyword>
@@ -57,7 +57,7 @@
 
 <abstract>
     
-    <t>This document specifies a distributed algorithm for automatic prefix assignment. Given a set of delegated prefixes, it ensures that at most one prefix is assigned from each delegated prefix to each link. Nodes may assign available prefixes to the links they are directly connected to, or for other private purposes. The algorithm eventually converges and ensures that all assigned prefixes do not overlap.</t>
+    <t>This document specifies a distributed algorithm for automatic prefix assignment. Thus it provides an alternative to manual or centralized prefix and address assignment techniques. Given a set of delegated prefixes, it ensures that at most one prefix is assigned from each delegated prefix to each link. Nodes may assign available prefixes to the links they are directly connected to, or for other private purposes. The algorithm eventually converges and ensures that all assigned prefixes do not overlap.</t>
 
 </abstract>
 
@@ -65,8 +65,10 @@
 <middle>
 
 <section anchor="intro" title="Introduction">
-    
-    <t>This document specifies a distributed algorithm for automatic prefix assignment. Given a set of delegated prefixes, Nodes may assign available prefixes to links they are directly connected to, or for their private use. The algorithm ensures that the following assertions are satisfied after a finite convergence period:
+
+	<t>This document specifies a distributed algorithm for automatic prefix assignment. The algorithm provides a generic alternative to centralized (human or software based) approaches for network prefixes and addresses assignment. Although it does not require to be configured to operate properly, it supports custom configuration by means of variable priority assignments, and can therefore be used in fully autonomic as well as professionally managed networks.</t>
+
+	<t>Given a set of delegated prefixes, Nodes may assign available prefixes to links they are directly connected to, or for their private use. The algorithm ensures that the following assertions are satisfied after a finite convergence period:
         <list style="numbers">
             <t>At most one prefix from each delegated prefix is assigned to each link.</t>
             <t>Assigned prefixes are non-overlapping (i.e., an assigned prefix never includes another assigned prefix).</t>
