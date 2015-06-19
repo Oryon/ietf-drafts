@@ -124,19 +124,31 @@
 </section>
 
 <section anchor="host" title="Host Behavior">
+
+    <t>Hosts implementing this specification are referred to as type D hosts, in reference to host types A, B and C defined in <xref target="RFC4191"/>. As a reminder, type A hosts are hosts behaving as specified in <xref target="RFC4191"/>. Type B hosts behave similarly to type A hosts with the addition that they act upon the Default Router Preference values present in Router Advertisement headers. Finally, type C hosts behave as type B hosts with the addition that they act upon received Route Information Options.</t>
+
+    <t>This section specifies type D hosts behavior. Type D hosts MUST behave as type C hosts unless stated otherwise in this section. For the sake of clarity, in this whole section, 'host' refers to 'type D host'.</t>
     
-    <t>Hosts implementing this specification MUST behave similarly to type C hosts as specified in <xref target="RFC4191"/>, unless stated otherwise in this section.</t>
-    
-    <t>Hosts implementing this specification MUST use a Routing Table with source address dependent entries. Such entries have a source prefix, a destination prefix, a preference value, a lifetime, an interface and a next-hop router address.</t>
-    
-    <t>When sending a packet, hosts MUST select the next-hop router based on the usual source address dependent routing algorithm, i.e., by picking the matching entry with, by order of precedence:
-        <list>
-            <t>The longest destination address match.</t>
-            <t>The longest source address match.</t>
-            <t>The highest route preference value.</t>
-        </list>
-        In case of a tie, hosts MAY either pick one entry or use load-sharing techniques.
-    </t>
+    <t>Hosts MUST use a Routing Table with source address dependent entries. Such entries have a:
+        <list style="symbols">
+            <t>Source prefix</t>
+            <t>Destination prefix</t>
+            <t>Preference value</t>
+            <t>Interface</t>
+            <t>Next-hop router address</t>
+            <t>Lifetime and associated timer</t>
+        </list></t>
+
+    <section anchor="hostsend" title="Selecting the next-hop router">
+        <t>When sending a packet, hosts MUST select the next-hop router based on the usual source address dependent routing algorithm, i.e., by picking the matching entry with, by order of precedence:
+            <list>
+                <t>The longest destination address match.</t>
+                <t>The longest source address match.</t>
+                <t>The greatest route preference value.</t>
+            </list>
+            In case of a tie, hosts MAY either pick one entry or use load-sharing techniques.
+        </t>
+    </section>
     
     <section anchor="rSADRIO" title="Receiving Source Address Dependent Route Information option">
     
@@ -150,15 +162,15 @@
         </list>
     </t>
     
-    <t>If no routing entry is found and the Route Lifetime is not null, insert a routing entry with the given source prefix, destination prefix, route preference, having as next-hop the source address of the received Router Advertisement, on the interface receiving the packet. If the Route Lifetime is not infinity, set the routing entry timer to the Route Lifetime value.</t>
-    <t>If a routing entry is found and the Route Lifetime is not null, cancel the associated timer. If the Route Lifetime is not infinity, set it to the Route Lifetime value. Finally, update the entry preference with the Route Preference value.</t>
+    <t>If no routing entry is found and the Route Lifetime is not null, insert a routing entry with the given source prefix, destination prefix, route preference, having as next-hop the source address of the received Router Advertisement, on the interface receiving the packet. If the Route Lifetime is not infinity (i.e., equal to 2^32 - 1), set the routing entry timer to the Route Lifetime value.</t>
+    <t>If a routing entry is found and the Route Lifetime is not null, cancel the associated timer. If the Route Lifetime is not infinity, set the timer to the Route Lifetime value. Finally, update the entry preference with the Route Preference value.</t>
     <t>If a routing entry is found and the Route Lifetime is null, remove the routing entry.</t>
     
-    <t>If both destination and source prefixes specified by the option are ::/0, the router preference and route lifetime present in the option override the default router lifetime and default router preference present in the header of the Router Advertisement.</t>
+    <t>If both destination and source prefixes specified by the option are ::/0, the router preference and route lifetime present in the option overrides the default router lifetime and default router preference present in the header of the Router Advertisement.</t>
 
     </section>
     
-    <section anchor="rRIO" title="Receiving Route Information option">
+    <section anchor="rRIO" title="Receiving Route Information options">
     <t>
         When receiving a Route Information option, a host MUST behave as follows:
         <list>
@@ -178,14 +190,14 @@
     <t>The Ignore bit is used to configure hosts implementing this specification differently from other types of hosts (A, B or C). Different combinations will result in different behaviors. For instance:
         <list>
         <t>
-            When injecting a source address dependent route is desired, a Source Address Dependent Route Information option is sent in every RA. Depending on the context, a Route Information with the same prefix and the Ignore bit set MAY be sent as well in order to inject non source address dependent route into type C hosts. Obviously, Source Address Dependent Route Information options can be used to inject non-source dependent routes as well. This technique and the use of the Ignore bit allow type C hosts and hosts implementing this specification to be configured with independent routes.
+            When injecting a source address dependent route is desired, a Source Address Dependent Route Information option is sent in every RA. Depending on the context, a Route Information with the same prefix and the Ignore bit set MAY be sent as well in order to inject a non source address dependent route into type C hosts. Obviously, Source Address Dependent Route Information options can be used to inject non-source dependent routes as well. This technique and the use of the Ignore bit allow type C hosts and type D hosts to be configured with possibly independent routes.
         </t>
         <t>
-            When injecting a non source address dependent route is desired, the router MAY either use a Route Information option with the Ignore flag not set, in which case type C hosts as well as hosts implementing this specification will be configured, or use a Source Address Dependent Route Information option with a source prefix ::/0, in which case type C hosts will not be configured.
+            When injecting a non source address dependent route is desired, the router MAY either use a Route Information option with the Ignore flag not set, in which case both type C and D hosts will be configured, or use a Source Address Dependent Route Information option with a source prefix ::/0, in which case type C hosts will not be configured.
         </t>
         </list>
     </t>
-    <t>When a Source Address Dependent Route Information option is removed from the set of advertised options, the router SHOULD send multiple unsolicited Router Advertisements with the Route Lifetime set to zero.</t>
+    <t>When a Source Address Dependent Route Information option is removed from the set of advertised options, or when the interface ceases to be an advertising interface, the router SHOULD send up to MAX_INITIAL_RTR_ADVERTISEMENTS unsolicited Router Advertisements, using the same rule as in <xref target="RFC2461"/>, with the Route Lifetime set to zero in all Source Address Dependent Route Information options that have become invalid.</t>
 </section>
 
 <section anchor="security" title="Security Considerations">
@@ -205,6 +217,7 @@
 <back>
 
 <references title="Normative References">
+  <?rfc include="reference.RFC.2461.xml"?>
   <?rfc include="reference.RFC.4191.xml"?>
   <?rfc include="reference.RFC.4861.xml"?>
 </references>
