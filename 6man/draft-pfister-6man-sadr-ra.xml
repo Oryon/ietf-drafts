@@ -53,23 +53,24 @@
 <section anchor="SADRIO" title="Source Address Dependent Route Information Option">
     
         <t>This section defines a new Router Advertisement option called the Source Address Dependent Route Information option. Its use is similar to the Route Information option defined in <xref target="RFC4191"/> but also includes additional source prefix fields, allowing source address dependent routes to be installed on hosts receiving the Router Advertisement.</t>
-    
+
         <figure title="Source Address Dependent Route Information Option">
             <preamble></preamble><artwork>
 0                   1                   2                   3
 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|     Type      |    Length     |   Src Length  |   Dst Length  |
+|     Type      |    Length     |   Dst Length  |Resvd|Prf|Resvd|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                        Route Lifetime                         |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|Resvd|Prf|Resvd|        Source Prefix (Variable Length)        |
-+-+-+-+-+-+-+-+-+                                               +
+|                                                               |
+.               Destination Prefix (Variable Length)            .
 .                                                               .
-.                                                               .
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|               Destination Prefix (Variable Length)            |
-.                                                               .
+.                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+.                               |   Src Length  |               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               +
+|                                                               |
+.                 Source Prefix (Variable Length)               .
 .                                                               .
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             </artwork><postamble></postamble>
@@ -79,17 +80,33 @@
         <list style="hanging">
             <t hangText="Type:">To be defined by IANA.</t>
             <t hangText="Length:">The length of the option (including the Type and Length fields) in units of 8 octets. It ranges from 2 to 6.</t>
-            <t hangText="Src Length:">The number of significant bits in the Source Prefix field.</t>
             <t hangText="Dst Length:">The number of significant bits in the Destination Prefix field.</t>
-            <t hangText="Route Lifetime:">Time in seconds (relative to the time the packet is sent) that the prefix is valid for route determination. A value of all one bits (0xffffffff) represents infinity.</t>
             <t hangText="Resvd (Reserved):">Bits reserved for futur use. They MUST be set to zero by the sender and ignored by the receiver.</t>
             <t hangText="Prf (Route Preference):">The route preference as specified in <xref target="RFC4191"/>. When the Reserved value (10) is received, the option MUST be ignored.</t>
-            <t hangText="Source Prefix:">The source prefix significant bits padded to the next 8-bits boundary.</t>
-            <t hangText="Destination Prefix:">The destination prefix significant bits padded to the next 64-bits boundary.</t>
+            <t hangText="Route Lifetime:">Time in seconds (relative to the time the packet is sent) that the prefix is valid for route determination. A value of all one bits (0xffffffff) represents infinity.</t>
+            <t hangText="Destination Prefix:">The destination prefix significant bits padded to the next 8-bits boundary.</t>
+            <t hangText="Src Length:">The number of significant bits in the Source Prefix field.</t>
+            <t hangText="Source Prefix:">The source prefix significant bits padded to the next 64-bits boundary.</t>
         </list>
         </t>
-        
-        <t>Note: The alignment is a bit awkward. I am not sure reserving 24 bits for the purpose of aligning the source prefix would be helpful. The destination prefix cannot be aligned neither due to the variable length of the source prefix, unless we add unused bytes in between. Propositions are welcome concerning the best format for this option.</t>
+
+    <t>
+        <figure>
+            <preamble>The following C code is given as an help for implementation:</preamble><artwork>
+    #define ALIGN(bitlength, alignment) \
+        (((bitlength != 0)?(((bitlength - 1) / alignment) + 1):0) * \
+              (alignment / 8))
+
+    unsigned char *option;
+    size_t src_len_index = 8 + ALIGN(option[2], 8);
+    size_t total_byte_length = ALIGN((src_len_index + 1) * 8
+                               + option[src_len_index], 64);
+            </artwork>
+        </figure>
+    </t>
+
+        <t>Note: Comments have been made regarding address alignment. There is no format providing at the same time good alignment and optimal TLV size, while aligning both source and destination prefixes would waste from 7 to 21 bytes per option. This TLV format is proposed based on implementation experience and provides both TLV size efficiency, and relative compatibility with the Route Information option (Linux implementation of this option support is less than 100 lines of code).</t>
+        <t>Comments and propositions are welcome regarding which format to adopt.</t>
 </section>
 
 <section anchor="RIOflag" title="Route Information Option ignore flag">
@@ -162,7 +179,7 @@
         </list>
     </t>
     
-    <t>If no routing entry is found and the Route Lifetime is not null, insert a routing entry with the given source prefix, destination prefix, route preference, having as next-hop the source address of the received Router Advertisement, on the interface receiving the packet. If the Route Lifetime is not infinity (i.e., equal to 2^32 - 1), set the routing entry timer to the Route Lifetime value.</t>
+    <t>If no routing entry is found and the Route Lifetime is not null, insert a routing entry with the given source prefix, destination prefix, route preference, having as next-hop the source address of the received Router Advertisement, on the interface receiving the packet. If the Route Lifetime is not infinity, set the routing entry timer to the Route Lifetime value.</t>
     <t>If a routing entry is found and the Route Lifetime is not null, cancel the associated timer. If the Route Lifetime is not infinity, set the timer to the Route Lifetime value. Finally, update the entry preference with the Route Preference value.</t>
     <t>If a routing entry is found and the Route Lifetime is null, remove the routing entry.</t>
     
