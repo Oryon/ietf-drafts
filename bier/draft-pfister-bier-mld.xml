@@ -12,7 +12,7 @@
 
 <front>
 
-<title abbrev="BIER MLD Protocol">BIER Multicast Listener Discovery Protocol</title>
+<title abbrev="MLD BIER ingress flow overlay">BIER Ingress Multicast Flow Overlay using Multicast Listener Discovery Protocols.</title>
 
 <author initials="P" surname="Pfister" fullname="Pierre Pfister">
     <organization>Cisco Systems</organization>
@@ -58,7 +58,7 @@
 <keyword>Control</keyword>
 
 <abstract>
-    <t>This document specifies the BIER Multicast Listener Discovery (BMLD) Protocol, which adapts the Multicast Listener Discovery protocol version 2 (MLDv2) to be used over BIER, enabling state sharing from egress routers, acting as listeners, toward ingress routers, acting as queriers. Ingress routers keep per-egress-router multicast subscription state, used to construct the BIER bit mask inserted to multicast packets entering the BIER domain.</t>
+    <t>This document specifies the ingress part of a multicast flow overlay for BIER networks. Using existing multicast listener discovery protocols, it enables multicast subscription state sharing from egress routers, acting as listeners, toward ingress routers, acting as queriers. Ingress routers keep per-egress-router state, used to construct the BIER bit mask associated with IP multicast packets entering the BIER domain.</t>
 </abstract>
 
 </front>
@@ -66,129 +66,131 @@
     
     
 <section anchor="intro" title="Introduction">
-    <t>The Bit Index Explicit Replication (BIER) forwarding scheme enables multicast forwarding within a BIER domain. When receiving or generating a packet, ingress routers have to construct a bit mask indicating which BIER egress routers located within the same BIER domain will receive the packet. A stateless approach would consist in forwarding all incoming packets toward all egress routers, which would in turn make a forwarding decision based on local information. But any more efficient approach would require ingress routers to keep some state about egress routers multicast subscriptions, hence requiring state sharing from egress routers toward ingress routers.</t>
+    <t>The Bit Index Explicit Replication (BIER - <xref target="I-D.ietf-bier-architecture"/>) forwarding technique enables IP multicast transport across a BIER domain. When receiving or generating a packet, ingress routers have to construct a bit mask indicating which BIER egress routers located within the same BIER domain will receive the packet. A stateless approach would consist in forwarding all incoming packets toward all egress routers, which would in turn make a forwarding decision based on local information. But any more efficient approach would require ingress routers to keep some state about egress routers multicast subscriptions, hence requiring state sharing from egress routers toward ingress routers.</t>
 
-    <t>State sharing techniques inspired from existing multicast routing protocols such as PIMv2 <xref target='RFC4601' /> would require intermediate routers to keep subscription states, which is undesirable as BIER does not need such state on intermediate routers. On the other hand, the Multicast Listener Discovery protocol version 2 <xref target='RFC3810' /> is widely available and has multiple interoperable implementations, but is only able to share multicast subscription state between routers and hosts connected on the same link.</t>
+    <!--<t>State sharing techniques inspired from existing multicast routing protocols such as PIMv2 <xref target='RFC4601' /> would require intermediate routers to keep subscription states, which is undesirable as BIER does not need such state on intermediate routers. In order to prevent that, PIMv2 could also be tunneled over BIER, but that would require border routers to exchange additional routing information. On the other hand, the Multicast Listener Discovery protocol version 2 <xref target='RFC3810' /> is widely available and has multiple interoperable implementations, but is only able to share multicast subscription state between routers and hosts connected on the same link.</t>-->
 
-    <t>This document specifies the BIER Multicast Listener Discovery (BMLD) Protocol, which adapts the Multicast Listener Discovery protocol version 2 (MLDv2) to be used over BIER, enabling state sharing from egress routers, acting as listeners, toward ingress routers, acting as queriers. Ingress routers keep per-egress-router multicast subscription state, used to construct the BIER bit mask inserted to multicast packets entering the BIER domain.</t>
+    <t>This document specifies how to use the Multicast Listener Discovery protocol version 2 <xref target='RFC3810' /> (resp. the Internet Group Management protocol version 3 <xref target="RFC3376"/>) as the ingress part of a BIER multicast flow overlay (BIER layering is described in <xref target="I-D.ietf-bier-architecture"/>) for IPv6 (resp. IPv4). It enables multicast subscription state sharing from egress routers, acting as listeners, toward ingress routers, acting as queriers. Ingress routers keep per-egress-router state, used to construct the BIER bit mask associated with IP multicast packets entering the BIER domain.</t>
+
+    <t>This specification is applicable to both IP version 4 and version 6. It therefore specifies two separate mechanisms operating independently. For the sake of simplicity, the rest of this document uses IPv6 terminology. It can be applied to IPv4 by replacing 'MLDv2' with 'IGMPv3', and following specific requirements when explicitly stated.</t>
 </section>
 
 <section anchor="terminology" title="Terminology">
     <t>In this document, the key words "MAY", "MUST", "MUST NOT", "RECOMMENDED",
         and "SHOULD", are to be interpreted as described in <xref target='RFC2119' />.</t>
 
-    <t>The terms "Bit-Forwarding Router" (BFR), "Bit-Forwarding Egress Router" (BFER), "Bit-Forwarding Ingress Router" (BFIR), "BFR-id" and "BFR-Prefix" are to be interprated as described in <xref target="I-D.ietf-bier-architecture"/>.</t>
+    <t>The terms "Bit-Forwarding Router" (BFR), "Bit-Forwarding Egress Router" (BFER), "Bit-Forwarding Ingress Router" (BFIR), "BFR-id" and "BFR-Prefix" are to be interpreted as described in <xref target="I-D.ietf-bier-architecture"/>.</t>
 
-    <t>Additionaly, the following definitions are used:
+    <t>Additionally, the following definitions are used:
         <list style="hanging">
-            <t hangText="BMLD Protocol:">The BIER Multicast Listener Discovery Protocol.</t>
-            <t hangText="BMLD Querier:">A BFIR implementing the Querier part of the BMLD protocol. As a BMLD Querier receives BMLD messages, it also is a BFER. A BMLD Node MAY be both a Querier and a Listener.</t>
-            <t hangText="BMLD Listener:">A BFER implementing the Listener part of the BMLD protocol. A a BMLD Listener sends BMLD messages, it also is a BFIR. A BMLD Node MAY be both a Querier and a Listener.</t>
+            <t hangText="BIER Multicast Listener Discovery (BMLD):">The modified version of MLD specified in this document.</t>
+            <t hangText="BMLD Querier:">A BFR implementing the Querier part of this specification. A BMLD Node MAY be both a Querier and a Listener.</t>
+            <t hangText="BMLD Listener:">A BFR implementing the Listener part of this specification. A BMLD Node MAY be both a Querier and a Listener.</t>
         </list>
     </t>
 </section>
 
 <section anchor="overview" title="Overview">
 
-    <t>This document proposes to use the mechanisms described in MLDv2 in order to enable multicast subscription state sharing from BFERs toward BFIRs within a given BIER domain. BMLD queries (resp. reports) are sent over BIER toward all BMLD Nodes (resp. BMLD Queriers) using modified MLDv2 messages which IPv6 destination is set to a configured 'all BMLD Nodes' (resp. 'all BMLD Queriers') IPv6 multicast address.</t>
+    <t>This document proposes to use the mechanisms described in MLDv2 in order to enable multicast subscription state sharing from BFERs toward BFIRs within a given BIER domain. BMLD queries (resp. reports) are sent over BIER toward all BMLD Nodes (resp. BMLD Queriers) using modified MLDv2 messages which IP destination is set to a configured 'all BMLD Nodes' (resp. 'all BMLD Queriers') IP multicast address.</t>
 
-    <t>By running MLDv2 instances with per-listener explicit tracking, BMLD Queriers are able to map BMLD Listeners (The BFR-Prefix is used as source address in all BMLD reports) with MLDv2 subscription states. This state is then used to construct the set of BFERs for each incoming IPv6 multicast data packet.</t>
+    <t>By running MLDv2 instances with per-listener explicit tracking, BMLD Queriers are able to map BMLD Listeners with MLDv2 subscription states. This state is then used to construct the set of BFERs associated with each incoming IP multicast data packet.</t>
 </section>
 
 <section anchor="as" title="Applicability Statement">
-    <t>The BMLD protocol runs on top of a BIER Layer and provides the BFIR part of the services provided by a Multicast Flow Overlay (The BIER layering architecture is described in <xref target="I-D.ietf-bier-architecture"/>), i.e, it specifies how BFIRs construct the set of BFERs for each ingress IPv6 multicast data packet. The BFER part of the Multicast Flow Overlay is out of scope of this document.</t>
+    <t>BMLD runs on top of a BIER Layer and provides the ingress part of a BIER multicast flow overlay, i.e, it specifies how BFIRs construct the set of BFERs for each ingress IP multicast data packet. The BFER part of the Multicast Flow Overlay is out of scope of this document.</t>
 
-    <t>The BIER Layer MUST be able to transport BMLD messages toward all BMLD Queriers and Listeners. Such packets are IPv6 multicast packets with a BFR-id as source address, a multicast destination address, and containing a MLDv2 message.</t>
+    <t>The BIER Layer MUST be able to transport BMLD messages toward all BMLD Queriers and Listeners. Such packets are IP multicast packets with a BFR-Prefix as source address, a multicast destination address, and containing a MLDv2 message.</t>
 
-    <t>The BMLD protocol only requires state to be kept by Queriers, and is therefore more scalable in terms of overall state, but is also likely to be less scalable than PIMv2 in terms of the amount of control traffic and the size of the state that is kept by individual routers.</t>
+    <t>BMLD only requires state to be kept by Queriers, and is therefore more scalable than PIMv2 <xref target="RFC4601"/> in terms of overall state, but is also likely to be less scalable than PIMv2 in terms of the amount of control traffic and the size of the state that is kept by individual routers.</t>
 
-    <t>The whole protocol can be adapted to IPv4 multicast, as specified in <xref target='IPv4' />.</t>
+    <t>This specification is applicable to both IP version 4 and version 6. It therefore specifies two separate mechanisms operating independently. For the sake of simplicity, this document uses IPv6 terminology. It can be applied to IPv4 by replacing 'MLDv2' with 'IGMPv3', and following specific requirements when explicitly stated.</t>
 </section>
 
 <section anchor="specs" title="Querier and Listener Specifications">
-    <t>Routers desiring to receive IPv6 multicast traffic (e.g., for their own use, or for forwarding) MUST behave as BMLD Listeners. Routers receiving IPv6 multicast traffic from outside the BIER domain, or locally generating multicast traffic, MUST behave as BMLD Queriers.</t>
+    <t>Routers desiring to receive IP multicast traffic (e.g., for their own use, or for forwarding) MUST behave as BMLD Listeners. Routers receiving IP multicast traffic from outside the BIER domain, or locally generating multicast traffic, MUST behave as BMLD Queriers.</t>
 
     <t>BMLD Queriers (resp. BMLD Listeners) MUST act as MLDv2 Queriers (resp. MLDv2 Listeners) as specified in <xref target="RFC3810"/> unless stated otherwise in this section.</t>
 
     <section title="Configuration Parameters">
-        <t>Both Queriers and Listeners MUST be able to operate as BFIRs and BFERs within the BIER domain, and MUST therefore be configured accordingly, as specified in <xref target="I-D.ietf-bier-architecture"/>.</t>
+        <t>Both Queriers and Listeners MUST be able to operate as BFIRs and BFERs within the BIER domain in order to send and receive BMLD messages. They MUST therefore be configured accordingly, as specified in <xref target="I-D.ietf-bier-architecture"/>.</t>
 
         <t>All Listeners MUST be configured with a 'all BMLD Queriers' multicast address and the BFR-ids of all the BMLD Queriers. This is used by Listeners to send BMLD Reports over BIER toward all Queriers.</t>
 
         <t>All Queriers MUST be configured with a 'all BMLD Nodes' multicast address and the BFR-ids of all the Queriers and Listeners. This information is used by Queriers to send BMLD queries over BIER toward all BMLD Nodes.</t>
 
-        <t>Note that BMLD (unlike MLDv2) makes use of per-instance configured multicast group addresses rather than well-known addresses so that multiple instances of BMLD (using different group addresses) can be run simultaneously within the same BIER domain. Configured group addresses MAY be obtained from allocated IPv6 prefixes using <xref target="RFC3306"/>.</t>
+        <t>Note that BMLD (unlike MLDv2) makes use of per-instance configured multicast group addresses rather than well-known addresses so that multiple instances of BMLD (using different group addresses) can be run simultaneously within the same BIER domain. Configured group addresses MAY be obtained from allocated IP prefixes using <xref target="RFC3306"/>.</t>
 
-        <t>IPv6 packets coming from outside of the BIER domain and having a destination address set to the configured 'all BMLD Queriers' or the 'all BMLD Nodes' group address MUST be dropped. It is RECOMMENDED that these configured addresses have a limited scope, enforcing this behavior by scope-based filtering on BIER domain's egress interfaces.</t>
+        <t>IP packets coming from outside of the BIER domain and having a destination address set to the configured 'all BMLD Queriers' or the 'all BMLD Nodes' group address MUST be dropped. It is RECOMMENDED that these configured addresses have a limited scope, enforcing this behavior by scope-based filtering on BIER domain's egress interfaces.</t>
     </section>
 
     <section title="MLDv2 instances.">
-        <t>BMLD Queriers MUST run a MLDv2 Querier instance with per-host tracking, which means they keep track of the MLDv2 state associated with each BMLD Listener. For that purpose, Listeners are identified by their respective BFR-Prefixes, used as IPv6 source address in all BMLD reports.</t>
+        <t>BMLD Queriers MUST run a MLDv2 Querier instance with per-host tracking, which means they keep track of the MLDv2 state associated with each BMLD Listener. For that purpose, Listeners are identified by their respective BFR-Prefix, used as IP source address in all BMLD reports.</t>
 
         <t>BMLD Listeners MUST run a MLDv2 Listener instance expressing their interest in the multicast traffic they are supposed to receive for local use or forwarding.</t>
 
-        <t>BMLD Listeners and Queriers MUST NOT run the MLDv1 backward compatibility procedures.</t>
+        <t>BMLD Listeners and Queriers MUST NOT run the MLDv1 (IGMPv2 and IGMPv1 for IPv4) backward compatibility procedures.</t>
 
         <section title="Sending Queries">
-            <t>BMLD Queries are IPv6 packets sent over BIER by BMLD Queriers:
+            <t>BMLD Queries are IP packets sent over BIER by BMLD Queriers:
                 <list style="symbols">
                     <t>Toward all BMLD Nodes (i.e., providing to the BIER Layer the BFR-ids of all BMLD Nodes).</t>
-                    <t>Without the router alert option <xref target="RFC2711"/> in the hop-by-hop extension header <xref target="RFC2460"/>.</t>
-                    <t>With the IPv6 destination address set to the 'all BMLD Nodes' group address.</t>
-                    <t>With the IPv6 source address set to the BFR-Prefix of the sender.</t>
-                    <t>With a TTL value great enough such that the packet can be received by all BMLD Nodes, depending on the underlying BIER layer (whether it decrements the IPv6 TTL or not) and the size of the network. The default value is 64.</t>
+                    <t>Without the IPv6 router alert option <xref target="RFC2711"/> in the hop-by-hop extension header <xref target="RFC2460"/> (or the IPv4 router alert option <xref target="RFC2113"/> for IPv4).</t>
+                    <t>With the IP destination address set to the 'all BMLD Nodes' group address.</t>
+                    <t>With the IP source address set to the BFR-Prefix of the sender.</t>
+                    <t>With a TTL value great enough such that the packet can be received by all BMLD Nodes, depending on the underlying BIER layer (whether it decrements the IP TTL or not) and the size of the network. The default value is 64.</t>
                 </list>
             </t>
         </section>
 
         <section title="Sending Reports">
-            <t>BMLD Reports are IPv6 packets sent over BIER by BMLD Listeners:
+            <t>BMLD Reports are IP packets sent over BIER by BMLD Listeners:
                 <list style="symbols">
                     <t>Toward all BMLD Queriers (i.e., providing to the BIER layer the BFR-ids of all BMLD Queriers).</t>
-                    <t>Without the router alert option in the hop-by-hop extension header.</t>
-                    <t>With the IPv6 destination address set to the 'all BMLD Queriers' group address.</t>
-                    <t>With the IPv6 source address set to the BFR-Prefix of the sender.</t>
-                    <t>With a TTL value great enough such that the packet can be received by all BMLD Queriers, depending on the underlying BIER layer (whether it decrements the IPv6 TTL or not) and the size of the network. The default value is 64.</t>
+                    <t>Without the IPv6 router alert option <xref target="RFC2711"/> in the hop-by-hop extension header <xref target="RFC2460"/> (or the IPv4 router alert option <xref target="RFC2113"/> for IPv4).</t>
+                    <t>With the IP destination address set to the 'all BMLD Queriers' group address.</t>
+                    <t>With the IP source address set to the BFR-Prefix of the sender.</t>
+                    <t>With a TTL value great enough such that the packet can be received by all BMLD Queriers, depending on the underlying BIER layer (whether it decrements the IP TTL or not) and the size of the network. The default value is 64.</t>
                 </list>
             </t>
         </section>
 
         <section title="Receiving Queries">
-            <t>BMLD Queriers and Listeners MUST check the destination address of all the IPv6 packets that are received or forwarded over BIER whenever their own BIER bit is set in the packet. If the destination address is equal to the 'all BMLD Nodes' the packet is processed as specified in this section.
+            <t>BMLD Queriers and Listeners MUST check the destination address of all the IP packets that are received or forwarded over BIER whenever their own BIER bit is set in the packet. If the destination address is equal to the 'all BMLD Nodes' the packet is processed as specified in this section.
             </t>
-            <t>If the IPv6 packet contains an ICMPv6 message of type 'Multicast Listener Query', it is processed by the MLDv2 instance run by the BMLD Querier. It MUST be dropped otherwise.</t>
-            <t>During the MLDv2 processing, the packet MUST NOT be checked against the MLDv2 consistency conditions (i.e., the presence of the router alert option, the source address being link-local and the TTL equaling 1).</t>
+            <t>If the IPv6 (resp. IPv4) packet contains an ICMPv6 (resp. IGMP) message of type 'Multicast Listener Query' (resp. of type 'Membership Query'), it is processed by the MLDv2 (resp. IGMPv3) instance run by the BMLD Querier. It MUST be dropped otherwise.</t>
+            <t>During the MLDv2 processing, the packet MUST NOT be checked against the MLDv2 consistency conditions (i.e., the presence of the router alert option, the TTL equaling 1 and, for IPv6 only, the source address being link-local).</t>
         </section>
 
         <section title="Receiving Reports">
-            <t>BMLD Queriers MUST check the destination address of all the IPv6 packets that are received or forwarded over BIER whenever their own BIER bit is set. If the destination address is equal to the 'all BMLD Queriers' the packet is processed as specified in this section.
+            <t>BMLD Queriers MUST check the destination address of all the IP packets that are received or forwarded over BIER whenever their own BIER bit is set. If the destination address is equal to the 'all BMLD Queriers' the packet is processed as specified in this section.
             </t>
-            <t>If the IPv6 packet contains an ICMPv6 message of type 'Multicast Listener Report Message v2', it is processed by the MLDv2 instance run by the BMLD Querier. It MUST be dropped otherwise.</t>
-            <t>During the MLDv2 processing, the packet MUST NOT be checked against the MLDv2 consistency conditions (i.e., the presence of the router alert option, the source address being link-local and the TTL equaling 1).</t>
+            <t>If the IPv6 (resp. IPv4) packet contains an ICMPv6 (resp. IGMP) message of type 'Multicast Listener Report Message v2' (resp. 'Version 3 Membership Report'), it is processed by the MLDv2 instance run by the BMLD Querier. It MUST be dropped otherwise.</t>
+            <t>During the MLDv2 processing, the packet MUST NOT be checked against the MLDv2 consistency conditions (i.e., the presence of the router alert option, the TTL equaling 1 and, for IPv6 only, the source address being link-local).</t>
         </section>
 
     </section>
 
     <section title="Packet Forwarding">
-        <t>BMLD Queriers configure the BIER Layer using the information obtained using the BMLD protocol which associates BMLD Listeners (identified by their BFR-Prefixes) with their respective MLDv2 subscription state.</t>
+        <t>BMLD Queriers configure the BIER Layer using the information obtained using BMLD, which associates BMLD Listeners (identified by their BFR-Prefixes) with their respective MLDv2 subscription state.</t>
 
         <t>More specifically, the MLDv2 state associated with each BMLD Listener is provided to the BIER layer such that whenever a multicast packet enters the BIER domain, if that packet matches the subscription state from a BMLD Listener, its BFR-id is added to the set of BFR-ids the packet should be forwarded to by the BIER-Layer.</t>
     </section>
 
 </section>
 
-<section anchor="IPv4" title="Legacy IP Support">
+<!--<section anchor="IPv4" title="Legacy IP Support">
     <t>The present specification may be applied to IPv4 by either:
         <list style="symbols">
-            <t>Substituting MLDv2 by IGMPv3 <xref target="RFC3376"/> in the present document and replacing IPv6 unicast or multicast addresses by IPv4 addresses.</t>
+            <t>Substituting MLDv2 by IGMPv3 <xref target="RFC3376"/> in the present document and replacing IP unicast or multicast addresses by IPv4 addresses.</t>
             <t>Encoding IPv4 addresses into MLDv2 messages as IPv6-mapped IPv4 addresses <xref target="RFC4291"/>.</t>
         </list>
     </t>
-</section>
+</section>-->
 
 
 <section anchor="sc" title="Security Considerations">
-    <t>The protocol specified in this document makes use of IPv6 MLDv2 messages transported over BIER in order to configure the BIER Layer of BFIRs. BMLD messages MUST be secured, either by relying on physical or link-layer security, or by securing the IPv6 packets (e.g., using IPSec <xref target="RFC4301"/>).</t>
+    <t>BMLD makes use of IP MLDv2 messages transported over BIER in order to configure the BIER Layer of BFIRs. BMLD messages MUST be secured, either by relying on physical or link-layer security, or by securing the IP packets (e.g., using IPSec <xref target="RFC4301"/>).</t>
     <t>Whenever an attacker would be able to spoof the identity of a router, it could:
         <list style="symbols">
             <t>Redirect undesired traffic toward the spoofed router by subscribing to undesired multicast traffic.</t>
@@ -207,10 +209,11 @@
 <back>
 
 <references title="Normative References">
+    <?rfc include="reference.RFC.2113.xml"?>
     <?rfc include="reference.RFC.2119.xml"?>
     <?rfc include="reference.RFC.3376.xml"?>
     <?rfc include="reference.RFC.3810.xml"?>
-    <?rfc include="reference.RFC.4291.xml"?>
+    <!--<?rfc include="reference.RFC.4291.xml"?>-->
     <?rfc include="reference.I-D.ietf-bier-architecture.xml"?>
 </references>
 
