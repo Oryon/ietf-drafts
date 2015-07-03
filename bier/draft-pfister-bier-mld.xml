@@ -58,7 +58,7 @@
 <keyword>Control</keyword>
 
 <abstract>
-    <t>This document specifies the ingress part of a multicast flow overlay for BIER networks. Using existing multicast listener discovery protocols, it enables multicast subscription state sharing from egress routers, acting as listeners, toward ingress routers, acting as queriers. Ingress routers keep per-egress-router state, used to construct the BIER bit mask associated with IP multicast packets entering the BIER domain.</t>
+    <t>This document specifies the ingress part of a multicast flow overlay for BIER networks. Using existing multicast listener discovery protocols, it enables multicast membership information sharing from egress routers, acting as listeners, toward ingress routers, acting as queriers. Ingress routers keep per-egress-router state, used to construct the BIER bit mask associated with IP multicast packets entering the BIER domain.</t>
 </abstract>
 
 </front>
@@ -66,11 +66,11 @@
     
     
 <section anchor="intro" title="Introduction">
-    <t>The Bit Index Explicit Replication (BIER - <xref target="I-D.ietf-bier-architecture"/>) forwarding technique enables IP multicast transport across a BIER domain. When receiving or generating a packet, ingress routers have to construct a bit mask indicating which BIER egress routers located within the same BIER domain will receive the packet. A stateless approach would consist in forwarding all incoming packets toward all egress routers, which would in turn make a forwarding decision based on local information. But any more efficient approach would require ingress routers to keep some state about egress routers multicast subscriptions, hence requiring state sharing from egress routers toward ingress routers.</t>
+    <t>The Bit Index Explicit Replication (BIER - <xref target="I-D.ietf-bier-architecture"/>) forwarding technique enables IP multicast transport across a BIER domain. When receiving or generating a packet, ingress routers have to construct a bit mask indicating which BIER egress routers located within the same BIER domain will receive the packet. A stateless approach would consist in forwarding all incoming packets toward all egress routers, which would in turn make a forwarding decision based on local information. But any more efficient approach would require ingress routers to keep some state about egress routers multicast membership information, hence requiring state sharing from egress routers toward ingress routers.</t>
 
     <!--<t>State sharing techniques inspired from existing multicast routing protocols such as PIMv2 <xref target='RFC4601' /> would require intermediate routers to keep subscription states, which is undesirable as BIER does not need such state on intermediate routers. In order to prevent that, PIMv2 could also be tunneled over BIER, but that would require border routers to exchange additional routing information. On the other hand, the Multicast Listener Discovery protocol version 2 <xref target='RFC3810' /> is widely available and has multiple interoperable implementations, but is only able to share multicast subscription state between routers and hosts connected on the same link.</t>-->
 
-    <t>This document specifies how to use the Multicast Listener Discovery protocol version 2 <xref target='RFC3810' /> (resp. the Internet Group Management protocol version 3 <xref target="RFC3376"/>) as the ingress part of a BIER multicast flow overlay (BIER layering is described in <xref target="I-D.ietf-bier-architecture"/>) for IPv6 (resp. IPv4). It enables multicast subscription state sharing from egress routers, acting as listeners, toward ingress routers, acting as queriers. Ingress routers keep per-egress-router state, used to construct the BIER bit mask associated with IP multicast packets entering the BIER domain.</t>
+    <t>This document specifies how to use the Multicast Listener Discovery protocol version 2 <xref target='RFC3810' /> (resp. the Internet Group Management protocol version 3 <xref target="RFC3376"/>) as the ingress part of a BIER multicast flow overlay (BIER layering is described in <xref target="I-D.ietf-bier-architecture"/>) for IPv6 (resp. IPv4). It enables multicast membership information sharing from egress routers, acting as listeners, toward ingress routers, acting as queriers. Ingress routers keep per-egress-router state, used to construct the BIER bit mask associated with IP multicast packets entering the BIER domain.</t>
 
     <t>This specification is applicable to both IP version 4 and version 6. It therefore specifies two separate mechanisms operating independently. For the sake of simplicity, the rest of this document uses IPv6 terminology. It can be applied to IPv4 by replacing 'MLDv2' with 'IGMPv3', and following specific requirements when explicitly stated.</t>
 </section>
@@ -92,9 +92,9 @@
 
 <section anchor="overview" title="Overview">
 
-    <t>This document proposes to use the mechanisms described in MLDv2 in order to enable multicast subscription state sharing from BFERs toward BFIRs within a given BIER domain. BMLD queries (resp. reports) are sent over BIER toward all BMLD Nodes (resp. BMLD Queriers) using modified MLDv2 messages which IP destination is set to a configured 'all BMLD Nodes' (resp. 'all BMLD Queriers') IP multicast address.</t>
+    <t>This document proposes to use the mechanisms described in MLDv2 in order to enable multicast membership information sharing from BFERs toward BFIRs within a given BIER domain. BMLD queries (resp. reports) are sent over BIER toward all BMLD Nodes (resp. BMLD Queriers) using modified MLDv2 messages which IP destination is set to a configured 'all BMLD Nodes' (resp. 'all BMLD Queriers') IP multicast address.</t>
 
-    <t>By running MLDv2 instances with per-listener explicit tracking, BMLD Queriers are able to map BMLD Listeners with MLDv2 subscription states. This state is then used to construct the set of BFERs associated with each incoming IP multicast data packet.</t>
+    <t>By running MLDv2 instances with per-listener explicit tracking, BMLD Queriers are able to map BMLD Listeners with MLDv2 membership states. This state is then used to construct the set of BFERs associated with each incoming IP multicast data packet.</t>
 </section>
 
 <section anchor="as" title="Applicability Statement">
@@ -172,9 +172,9 @@
     </section>
 
     <section title="Packet Forwarding">
-        <t>BMLD Queriers configure the BIER Layer using the information obtained using BMLD, which associates BMLD Listeners (identified by their BFR-Prefixes) with their respective MLDv2 subscription state.</t>
+        <t>BMLD Queriers configure the BIER Layer using the information obtained using BMLD, which associates BMLD Listeners (identified by their BFR-Prefixes) with their respective MLDv2 membership state.</t>
 
-        <t>More specifically, the MLDv2 state associated with each BMLD Listener is provided to the BIER layer such that whenever a multicast packet enters the BIER domain, if that packet matches the subscription state from a BMLD Listener, its BFR-id is added to the set of BFR-ids the packet should be forwarded to by the BIER-Layer.</t>
+        <t>More specifically, the MLDv2 state associated with each BMLD Listener is provided to the BIER layer such that whenever a multicast packet enters the BIER domain, if that packet matches the memberhsip information from a BMLD Listener, its BFR-id is added to the set of BFR-ids the packet should be forwarded to by the BIER-Layer.</t>
     </section>
 
 </section>
