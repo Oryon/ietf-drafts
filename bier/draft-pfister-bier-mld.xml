@@ -11,7 +11,7 @@
 
 <front>
 
-<title abbrev="MLD BIER ingress flow overlay">BIER Ingress Multicast Flow Overlay using Multicast Listener Discovery Protocols.</title>
+<title abbrev="MLD BIER ingress flow overlay">BIER Ingress Multicast Flow Overlay using Multicast Listener Discovery Protocols</title>
 
 <author initials="P" surname="Pfister" fullname="Pierre Pfister">
     <organization>Cisco Systems</organization>
