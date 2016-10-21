@@ -49,15 +49,15 @@
 </address>
 </author>
 
-<date month="June" year="2015" />
+<date month="August" year="2015" />
 
 <keyword>IPv6</keyword>
 <keyword>Homenet</keyword>
 <keyword>Prefix Assignment</keyword>
 
 <abstract>
-    
-    <t>This document specifies a distributed algorithm for automatic prefix assignment. Thus it provides an alternative to manual or centralized prefix and address assignment techniques. Given a set of delegated prefixes, it ensures that at most one prefix is assigned from each delegated prefix to each link. Nodes may assign available prefixes to the links they are directly connected to, or for other private purposes. The algorithm eventually converges and ensures that all assigned prefixes do not overlap.</t>
+    <!-- IP prefix assignment often relies on human touch or centralized address management systems.  -->
+    <t>This document specifies a distributed algorithm for dividing a set of prefixes in a manner that allows for automatic assignment of sub-prefixes that are unique and non-overlapping. Used in conjunction with a protocol that provides flooding of information among a set of participating nodes, prefix configuration within a network may be automated.</t>
 
 </abstract>
 
@@ -85,7 +85,7 @@
 
 </section>
 
-<section anchor="terminology" title="Terminology">
+<section anchor="terminology" title="Definitions">
     <t>In this document, the key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" are to be interpreted as described in <xref target='RFC2119' />.</t>
     
     <t>
@@ -174,7 +174,7 @@
 
     <!-- Otherwise correctness is not ensured -->
     
-    <t>Given this set of non-overlapping Delegated Prefixes, Nodes may assign available prefixes from each Delegated Prefix to the Links they are directly connected to. The algorithm ensures that at most one prefix from a given Delegated Prefix is assigned to any given Link. Prefixes may also be assigned for private use. For example, an assigned prefix may be delegated to some other entity that does not implement this algorithm, or associated with a high priority in order to prevent other nodes from assigning any overlapping prefix.</t>
+    <t>Given this set of non-overlapping Delegated Prefixes, Nodes may assign available prefixes from each Delegated Prefix to the Links they are directly connected to. The algorithm ensures that at most one prefix from a given Delegated Prefix is assigned to any given Link. Prefixes may also be assigned for private use. For example, an assigned prefix may be delegated to some other entity that does not implement this algorithm <xref target='RFC3633' />, or associated with a high priority in order to prevent other nodes from assigning any overlapping prefix <xref target='RFC6603' />.</t>
 
     <!--<t>The algorithm supports dynamically changing topologies:
         <list style="symbols">
@@ -397,7 +397,7 @@
             <t hangText="Advanced: ">The Node is capable of assigning new prefixes, adopting existing ones, making overriding assignments and destroying existing ones. Such behavior requires the implementation of the considerations specified in <xref target='random' /> and <xref target='override' />. It is suited when the administrator desires some particular prefix to be assigned on a given Link, or some Link to be assigned prefixes with a greater priority when there are not enough prefixes available for all Links.</t>
         </list>
 
-        Note that if all Nodes directly connected to some Link are listener Nodes or none of these Nodes are willing to make an assignment from a given Delegated Prefix to the given Link, no prefix from the given Delegated Prefix will ever be assigned to the Link (and such existing prefixes will be removed). This situation may be detected by watching whether no prefix from a given Delegated Prefix has been assigned to the Link for longer than BACKOFF_MAX_DELAY plus the Flooding Delay.
+        Note that if all Nodes directly connected to some Link are listener Nodes or none of these Nodes are willing to make an assignment from a given Delegated Prefix to the given Link, no prefix from the given Delegated Prefix will ever be assigned to the Link. This situation may be detected by watching whether no prefix from a given Delegated Prefix has been assigned to the Link for longer than BACKOFF_MAX_DELAY plus the Flooding Delay.
     </t>
     
 </section>
@@ -447,8 +447,9 @@
 </references>
 
 <references title="Informative References">
-  <?rfc include="reference.RFC.4291.xml"?>
   <?rfc include="reference.RFC.3633.xml"?>
+  <?rfc include="reference.RFC.4291.xml"?>
+  <?rfc include="reference.RFC.6603.xml"?>
 </references>
 
 

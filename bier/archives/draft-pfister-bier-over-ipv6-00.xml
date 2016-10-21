@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+
+<rfc ipr="trust200902"
+    docName="draft-pfister-bier-over-ipv6-00"
+    category="std">
+
+<?rfc toc="yes"?> <?rfc symrefs="yes"?> <?rfc autobreaks="yes"?>
+<?rfc tocindent="yes"?> <?rfc compact="yes"?> <?rfc subcompact="no"?>
+
+<front>
+
+<title abbrev="BIER over IPv6">An IPv6 based BIER Routing Underlay</title>
+
+<author initials="P" surname="Pfister" fullname="Pierre Pfister">
+    <organization>Cisco Systems</organization>
+    <address>
+        <postal>
+            <street/>
+            <city>Paris</city>
+            <country>France</country>
+        </postal>
+        <email>pierre.pfister@darou.fr</email>
+    </address>
+</author>
+
+<author initials="IJ" surname="Wijnands" fullname="IJsbrand Wijnands">
+    <organization>Cisco Systems</organization>
+    <address>
+        <postal>
+            <street>De Kleetlaan 6a</street>
+            <city>Diegem</city>
+            <code>1831</code>
+            <country>Belgium</country>
+        </postal>
+        <email>ice@cisco.com</email>
+    </address>
+</author>
+
+<date month="October" year="2016" />
+
+<keyword>Bier</keyword>
+<keyword>Routing</keyword>
+<keyword>Underlay</keyword>
+<keyword>IPv6</keyword>
+
+<abstract>
+    <t>This document specifies a routing underlay which enables transport of IPv6 payloads to multiple IPv6 destinations using the Bit Index Explicit Replication (BIER). The BIER bits are stored within the low-order bits of the IPv6 destination address while the high-order bits are left untouched and used in order to decide whether an IPv6 packet is a regular IPv6 packet or an IPv6 BIER packet, and if so, to identify the BIER set identifier.</t>
+</abstract>
+
+</front>
+<middle>
+
+
+<section anchor="intro" title="Introduction">
+    <t>The Bit Index Explicit Replication (BIER - <xref target="I-D.ietf-bier-architecture"/>) forwarding technique enables IP multicast transport across a BIER domain. It operates using three different elements, a multicast flow overlay, a BIER Layer, and a routing underlay. This document specifies a way to send IPv6 payloads to multiple destinations using regular IPv6 packets with no additional extension header.</t>
+
+    <t>BIER bits are encoded in the low-order bits of the IPv6 destination address of each packet. The high-order bits of the IPv6 destination address are left untouched and used by intermediate BIER routers to decide whether the packet should be forwarded as a regular IPv6 packet or an IPv6 BIER packet, and if so, to know the BIER Set Identifier.</t>
+
+    <t>Transported payloads can be of many types such as IPv6 or IPv4 unicast or multicast packets (e.g. using generic packet tunneling <xref target='RFC2473'/>), or transported data (e.g. using UDP). Special care must be taken when forwarding some types of payloads. For example, the UDP checksum must be recomputed when the BIER bits are changed.</t>
+</section>
+
+<section anchor="terminology" title="Terminology">
+    <t>In this document, the key words "MAY", "MUST", "MUST NOT", "RECOMMENDED",
+        and "SHOULD", are to be interpreted as described in <xref target='RFC2119' />.</t>
+</section>
+
+<section anchor="packet" title="IPv6 BIER Packet Format">
+    <t>BIER IPv6 packets are IPv6 unicast packets. There is no specificities to the format of the packet. The BIER bits are encoded in the low-order bits of the IPv6 destination address of the packet while the high-order bits are used by intermediate routers to identify that the forwarded packet is an IPv6 BIER packet, and which BIER Set Identifier to use.</t>
+
+<t>
+<figure anchor="format" title="IPv6 BIER destination address format">
+    <preamble></preamble><artwork>
+|     p bits         |  i bits   |          128-p-i bits           |
++--------------------+-----------+---------------------------------+
+|  BIER IPv6 Prefix  |  SI bits  |         BitString bits          |
++--------------------+-----------+---------------------------------+
+    </artwork><postamble></postamble>
+</figure>
+
+<list style="hanging" hangIndent="6">
+    <t hangText="BIER IPv6 Prefix:">This is a prefix used for BIER forwarding within the domain. BIER routers will consider all packets sent to this prefix as IPv6 BIER packets.</t>
+    <t hangText="SI bits:">These bits are used to encode the Set Identifier. It is used in order to address more BFERs than there are bits in the last part of the IPv6 address.</t>
+    <t hangText="BitString bits:">Set of bits encoding the set of BFERs the packet should be sent to. Those bits are modified as the packet is replicated by intermediate BIER routers. The length of this field is equal to 128-p-i and specifies the value of the BitStringLength to be used in the BIER forwarding process.</t>
+</list>
+</t>
+
+<t>For example, a BIER domain assigns the prefix 2001:db8::/56 as a BIER IPv6 Prefix, and sets i to 8. Every BIER router within the domain is configured with such values and is therefore able to identify all BIER packets and treat them accordingly. As the SI bits length is 8, the lowest-weight 64 bits are used as a BIER bit field. A single packet can be sent to at most 64 different BFERs, while the entire domain can include up to 64 * 2^8 = 16384 BFERs.</t>
+
+</section>
+
+<section anchor="bier" title="BIER Layer Operations">
+    <t>When a multicast packet enters the BIER domain, the BFIR first consults the multicast flow overlay and obtains the set of BFERs the packet must be sent to. This set is used in order to compute the set of bit indexes representing the set of destination BFERs. All indexes that have the same SI are grouped in order to create a set of BitString associated with their respective SI. For each SI, the multicast packet is encapsulated within an IPv6 BIER packet, as specified in <xref target="packet"/>.</t>
+
+    <t>The same process is used when a given IPv6 payload should be sent to a set of destinations. But instead of encapsulating the packet, the payload is attached to the BIER IPv6 header and the IPv6 protocol number is set to the type of the payload.</t>
+</section>
+
+<section anchor="routing" title="Routing Underlay Operations">
+    <t>A BIER router is configured with at least one, and possibly more, rules. Each rule includes a BIER IPv6 Prefix (value and prefix length), the value of 'i', and the set of mappings used by BIER in order to associate BIER bits with IPv6 destinations.</t>
+    <t>For each packet forwarded by a BFR, the router first performs a longest prefix match operation over the destination address. If the found entry corresponds to a BIER rule, the packet is treated as a BIER packet. Otherwise, it is treated as a regular IPv6 packet.</t>
+    <t>When an IPv6 BIER packet is forwarded, the BFR retrieves the SI value and BitString and performs the BIER forwarding algorithm. For each replicated packet, the BitString is possibly modified and the packet is sent on the outgoing interface.</t>
+</section>
+
+<section title="Advantages of this Technique">
+    <t>The technique described in this document offers different advantages:
+        <list>
+            <t>BIER IPv6 packets are regular IPv6 packets. If the BIER IPv6 Prefix is a globally unique IPv6 prefix, reachable from outside the BIER domain, it is possible to send a packet from outside the BIER domain to multiple destination within the BIER domain.</t>
+            <t>It may be used for transporting IP multicast packets, but also for sending IP payloads directly to multiple destinations.</t>
+            <t>It does not rely on a new IPv6 extension header, which simplifies deployment and is likely to improve performances.</t>
+            <t>It makes use of a typical IP longest match in order to decide whether a packet is a BIER packet or not, which means hardware and software existing solutions may be used for that purpose.</t>
+            <t>It is possible to configure a host with an address which corresponds to a BIER address with a single bit set. From the host perspective, such address is not different from a regular IPv6 address. Which means a BIER-unaware host may receive BIER packets transparently (With possible additional duplication by the last BFR when multiple hosts are located on the same link).</t>
+        </list>
+
+    </t>
+
+</section>
+
+<section anchor="sc" title="Security Considerations">
+    <t>This technique allows IPv6 BIER packets to be sent across the internet toward multiple destination located in a given BIER domain. If this is considered a threat, a firewall at the entrance of the BIER domain in order to avoid BIER packets from being injected and replicated within the network.</t>
+</section>
+
+<section anchor="ic" title="IANA Considerations">
+    <t>This specification does not require any action from IANA.</t>
+</section>
+
+</middle>
+
+<back>
+
+<references title="Normative References">
+    <?rfc include="reference.RFC.2119.xml"?>
+    <?rfc include="reference.RFC.2473.xml"?>
+</references>
+
+<references title="Informative References">
+    <?rfc include="reference.I-D.ietf-bier-architecture.xml"?>
+</references>
+
+<section anchor="ack" title="Acknowledgements">
+    <t>Comments concerning this document are very welcome.</t>
+</section>
+
+</back>
+</rfc>
