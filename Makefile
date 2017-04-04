@@ -1,6 +1,6 @@
 DRAFTS=$(patsubst %.xml,%.html,$(wildcard *.xml))
 
-all: homenet pim 6man bier
+all: homenet pim 6man bier intarea
 
 .PHONY: homenet
 homenet:
@@ -18,11 +18,16 @@ pim:
 bier:
 	$(MAKE) -f ../Makefile -C bier ids
 
+.PHONY: intarea
+intarea:
+	$(MAKE) -f ../Makefile -C intarea ids
+
 clean:
 	$(MAKE) -f ../Makefile -C homenet ids_clean
 	$(MAKE) -f ../Makefile -C pim ids_clean
 	$(MAKE) -f ../Makefile -C 6man ids_clean
 	$(MAKE) -f ../Makefile -C bier ids_clean
+	$(MAKE) -f ../Makefile -C intarea ids_clean
 
 
 #Executed in subdirectories
